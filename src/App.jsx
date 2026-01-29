@@ -13,6 +13,7 @@ import { Profile } from './screens/Profile'
 
 // Components
 import { AuthHandler } from './components/AuthHandler'
+import { ToastProvider } from './contexts/ToastContext'
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -38,7 +39,7 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   return (
-    <>
+    <ToastProvider>
       <AuthHandler />
       <Routes>
       <Route path="/login" element={<Login />} />
@@ -117,7 +118,7 @@ function App() {
       />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>
-    </>
+    </ToastProvider>
   )
 }
 

@@ -45,7 +45,10 @@ export const CreateColoringPage = () => {
   const { data: userProfile } = useUser(user?.uid)
   const generateMutation = useGenerateColoringPage()
 
-  const [activeTab, setActiveTab] = useState(tabTypes[type] || 'text')
+  const initialTab = tabTypes[type] || 'text'
+  const [activeTab, setActiveTab] = useState(
+    initialTab === 'wordArt' || initialTab === 'drawing' ? 'text' : initialTab
+  )
   const [prompt, setPrompt] = useState('alien mother ship, crashing at beach.')
   const [autoImprove, setAutoImprove] = useState(true)
   const [style, setStyle] = useState('fast')
@@ -126,8 +129,7 @@ export const CreateColoringPage = () => {
         <Box sx={{ width: 500, backgroundColor: '#FFFFFF', borderRadius: 2, padding: 3, overflowY: 'auto' }}>
           <Tabs value={activeTab} onChange={handleTabChange} sx={{ marginBottom: 3 }}>
             <Tab label="Text Prompt" value="text" />
-            <Tab label="Word Art" value="wordArt" />
-            <Tab label="Drawing" value="drawing" />
+            {/* Word Art and Drawing tabs hidden for now */}
             <Tab label="Photo" value="photo" />
           </Tabs>
 

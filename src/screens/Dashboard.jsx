@@ -19,20 +19,7 @@ const featureCards = [
     image: 'https://via.placeholder.com/400x300/64B5F6/ffffff?text=Text+Prompts',
     path: '/create/text',
   },
-  {
-    id: 2,
-    title: 'Word Art',
-    description: 'Create coloring pages featuring letters, words, numbers and words!',
-    image: 'https://via.placeholder.com/400x300/64B5F6/ffffff?text=Word+Art',
-    path: '/create/word-art',
-  },
-  {
-    id: 3,
-    title: 'Drawings',
-    description: 'Turn your drawings into coloring pages!',
-    image: 'https://via.placeholder.com/400x300/64B5F6/ffffff?text=Drawings',
-    path: '/create/drawing',
-  },
+  // Word Art and Drawings hidden for now
   {
     id: 4,
     title: 'Photos',
