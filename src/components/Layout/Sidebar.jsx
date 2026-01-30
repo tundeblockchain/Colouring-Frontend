@@ -9,26 +9,24 @@ import {
   Avatar,
 } from '@mui/material'
 import {
-  AddPhotoAlternate,
-  Image,
-  Favorite,
-  Bookmark,
-  Layers,
-  Settings,
-  Lightbulb,
-  Logout,
+  AddPhotoAlternateOutlined,
+  ImageOutlined,
+  FavoriteBorder,
+  FolderOutlined,
+  SettingsOutlined,
+  LightbulbOutlined,
+  LogoutOutlined,
 } from '@mui/icons-material'
 import { useAuth } from '../../hooks/useAuth'
 import { logoutUser } from '../../api/auth'
 
 const menuItems = [
-  { icon: AddPhotoAlternate, path: '/dashboard', label: 'Create' },
-  { icon: Image, path: '/gallery', label: 'Gallery' },
-  { icon: Favorite, path: '/favorites', label: 'Favorites' },
-  { icon: Bookmark, path: '/saved', label: 'Saved' },
-  { icon: Layers, path: '/folders', label: 'Folders' },
-  { icon: Settings, path: '/settings', label: 'Settings' },
-  { icon: Lightbulb, path: '/ideas', label: 'Ideas' },
+  { icon: AddPhotoAlternateOutlined, path: '/dashboard', label: 'Create' },
+  { icon: ImageOutlined, path: '/gallery', label: 'Gallery' },
+  { icon: FavoriteBorder, path: '/favorites', label: 'Favorites' },
+  { icon: FolderOutlined, path: '/folders', label: 'Folders' },
+  { icon: SettingsOutlined, path: '/settings', label: 'Settings' },
+  { icon: LightbulbOutlined, path: '/ideas', label: 'Ideas' },
 ]
 
 export const Sidebar = () => {
@@ -142,7 +140,7 @@ export const Sidebar = () => {
                 color: 'text.secondary',
               }}
             >
-              <Logout fontSize="small" />
+              <LogoutOutlined fontSize="small" />
             </ListItemIcon>
           </ListItemButton>
         </Tooltip>

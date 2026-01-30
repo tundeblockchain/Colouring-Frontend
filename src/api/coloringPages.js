@@ -87,6 +87,26 @@ export const toggleFavorite = async (pageId, userId) => {
 }
 
 /**
+ * Move coloring page to folder
+ */
+export const moveColoringPageToFolder = async (pageId, userId, folderId) => {
+  const result = await apiRequest(`/coloring-pages/${pageId}`, {
+    method: 'PATCH',
+    userId,
+    body: { folderId: folderId || null },
+  })
+
+  if (result.success) {
+    return {
+      success: true,
+      data: result.data ? new ColoringPage(result.data) : { id: pageId, folderId },
+    }
+  }
+
+  return result
+}
+
+/**
  * Delete coloring page
  */
 export const deleteColoringPage = async (pageId, userId) => {

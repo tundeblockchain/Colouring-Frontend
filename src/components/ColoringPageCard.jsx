@@ -16,7 +16,14 @@ const iconButtonSx = {
   },
 }
 
-export const ColoringPageCard = ({ page, onToggleFavorite, isFavoritePending }) => {
+const DRAG_TYPE = 'application/x-coloring-page-id'
+
+export const ColoringPageCard = ({
+  page,
+  onToggleFavorite,
+  isFavoritePending,
+  draggable: isDraggable = false,
+}) => {
   const imageUrl = page.imageUrl || page.thumbnailUrl
   const { showToast } = useToast()
 
@@ -25,11 +32,27 @@ export const ColoringPageCard = ({ page, onToggleFavorite, isFavoritePending }) 
     showToast('Download complete')
   }
 
+  const handleDragStart = (e) => {
+    if (!isDraggable) return
+    e.dataTransfer.setData(DRAG_TYPE, page.id)
+    e.dataTransfer.effectAllowed = 'move'
+    e.currentTarget.style.opacity = '0.5'
+  }
+
+  const handleDragEnd = (e) => {
+    e.currentTarget.style.opacity = '1'
+  }
+
   return (
     <Card
+      draggable={isDraggable}
+      onDragStart={isDraggable ? handleDragStart : undefined}
+      onDragEnd={isDraggable ? handleDragEnd : undefined}
       sx={{
         position: 'relative',
         transition: 'transform 0.2s, box-shadow 0.2s',
+        cursor: isDraggable ? 'grab' : undefined,
+        '&:active': isDraggable ? { cursor: 'grabbing' } : undefined,
         '&:hover': {
           transform: 'translateY(-4px)',
           boxShadow: '0 8px 16px rgba(0,0,0,0.15)',

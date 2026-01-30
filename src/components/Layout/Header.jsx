@@ -1,9 +1,9 @@
 import { Box, TextField, InputAdornment, IconButton, Badge, Chip } from '@mui/material'
 import {
-  Search,
-  Notifications,
-  Info,
-  Refresh,
+  SearchOutlined,
+  NotificationsOutlined,
+  InfoOutlined,
+  RefreshOutlined,
 } from '@mui/icons-material'
 import { useUser } from '../../hooks/useUser'
 
@@ -62,7 +62,7 @@ export const Header = ({ user }) => {
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <Search sx={{ color: 'text.secondary' }} />
+                <SearchOutlined sx={{ color: 'text.secondary' }} />
               </InputAdornment>
             ),
           }}
@@ -86,16 +86,16 @@ export const Header = ({ user }) => {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
         <IconButton>
           <Badge badgeContent={0} color="primary">
-            <Notifications sx={{ color: 'text.secondary' }} />
+            <NotificationsOutlined sx={{ color: 'text.secondary' }} />
           </Badge>
         </IconButton>
 
         <Chip
-          icon={<Refresh fontSize="small" />}
+          icon={<RefreshOutlined fontSize="small" />}
           label={`${userProfile?.credits || 0} credits remaining`}
-          color="secondary"
+          color="primary"
           sx={{
-            backgroundColor: '#81C784',
+            backgroundColor: 'primary.main',
             color: '#FFFFFF',
             fontWeight: 500,
             '& .MuiChip-icon': {
@@ -105,7 +105,7 @@ export const Header = ({ user }) => {
         />
 
         <IconButton size="small">
-          <Info sx={{ color: 'text.secondary', fontSize: 20 }} />
+          <InfoOutlined sx={{ color: 'text.secondary', fontSize: 20 }} />
         </IconButton>
       </Box>
     </Box>

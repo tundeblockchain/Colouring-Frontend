@@ -25,6 +25,62 @@ export const getUserFolders = async (userId) => {
 }
 
 /**
+ * Get folder by id
+ */
+export const getFolder = async (userId, folderId) => {
+  const result = await apiRequest(`/folders/${folderId}?userId=${userId}`, {
+    method: 'GET',
+    userId,
+  })
+
+  if (result.success) {
+    return {
+      success: true,
+      data: new Folder(result.data),
+    }
+  }
+
+  return result
+}
+
+/**
+ * Update folder (rename)
+ */
+export const updateFolder = async (userId, folderId, folderData) => {
+  const { name, color } = folderData || {}
+  const requestBody = {}
+  if (name !== undefined) requestBody.name = name.trim()
+  if (color !== undefined) requestBody.color = color
+
+  const result = await apiRequest(`/folders/${folderId}`, {
+    method: 'PATCH',
+    userId,
+    body: requestBody,
+  })
+
+  if (result.success) {
+    return {
+      success: true,
+      data: new Folder(result.data),
+    }
+  }
+
+  return result
+}
+
+/**
+ * Delete folder
+ */
+export const deleteFolder = async (userId, folderId) => {
+  const result = await apiRequest(`/folders/${folderId}`, {
+    method: 'DELETE',
+    userId,
+  })
+
+  return result
+}
+
+/**
  * Create folder
  */
 export const createFolder = async (userId, folderData) => {

@@ -9,5 +9,7 @@ export class Folder {
     this.color = data.color || '#64B5F6'
     this.createdAt = data.createdAt || new Date().toISOString()
     this.coloringPageCount = data.coloringPageCount || 0
+    this.thumbnailUrl = data.thumbnailUrl || null
+    this.isPinned = data.isPinned || false
   }
 }

@@ -10,6 +10,8 @@ import { Gallery } from './screens/Gallery'
 import { Favorites } from './screens/Favorites'
 import { CreateColoringPage } from './screens/CreateColoringPage'
 import { Profile } from './screens/Profile'
+import { Folders } from './screens/Folders'
+import { FolderView } from './screens/FolderView'
 
 // Components
 import { AuthHandler } from './components/AuthHandler'
@@ -96,7 +98,15 @@ function App() {
         path="/folders"
         element={
           <ProtectedRoute>
-            <Gallery />
+            <Folders />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/folders/:folderId"
+        element={
+          <ProtectedRoute>
+            <FolderView />
           </ProtectedRoute>
         }
       />

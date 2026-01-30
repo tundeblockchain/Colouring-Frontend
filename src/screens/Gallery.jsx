@@ -1,15 +1,26 @@
-import { Box, Typography, Grid } from '@mui/material'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Box, Typography, Grid, Chip } from '@mui/material'
+import { Folder as FolderIcon } from '@mui/icons-material'
 import { MainLayout } from '../components/Layout/MainLayout'
 import { ColoringPageCard } from '../components/ColoringPageCard'
 import { useToast } from '../contexts/ToastContext'
 import { useAuth } from '../hooks/useAuth'
-import { useColoringPages, useToggleFavorite } from '../hooks/useColoringPages'
+import { useColoringPages, useToggleFavorite, useMoveToFolder } from '../hooks/useColoringPages'
+import { useFolders } from '../hooks/useFolders'
+
+const DRAG_TYPE = 'application/x-coloring-page-id'
 
 export const Gallery = () => {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const { showToast } = useToast()
   const { data: coloringPages = [], isLoading } = useColoringPages(user?.uid)
+  const { data: folders = [] } = useFolders(user?.uid)
   const toggleFavoriteMutation = useToggleFavorite()
+  const moveToFolderMutation = useMoveToFolder()
+
+  const [dragOverFolderId, setDragOverFolderId] = useState(null)
 
   const handleToggleFavorite = async (pageId) => {
     if (!user?.uid) return
@@ -18,10 +29,41 @@ export const Gallery = () => {
         pageId,
         userId: user.uid,
       })
-      console.log('toggleFavorite onSuccess', result)
       showToast(result.data.isFavorite ? 'Added to favourites' : 'Removed from favourites')
     } catch {
       showToast('Something went wrong', 'error')
+    }
+  }
+
+  const handleFolderDragOver = (e, folderId) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverFolderId(folderId)
+  }
+
+  const handleFolderDragLeave = () => {
+    setDragOverFolderId(null)
+  }
+
+  const handleFolderDrop = async (e, folderId) => {
+    e.preventDefault()
+    setDragOverFolderId(null)
+    const pageId = e.dataTransfer.getData(DRAG_TYPE)
+    if (!pageId || !user?.uid) return
+    try {
+      await moveToFolderMutation.mutateAsync({
+        pageId,
+        userId: user.uid,
+        folderId: folderId || null,
+      })
+      if (folderId) {
+        const folder = folders.find((f) => f.id === folderId)
+        showToast(`Added to "${folder?.name || 'folder'}"`)
+      } else {
+        showToast('Removed from folder')
+      }
+    } catch {
+      showToast('Failed to move to folder', 'error')
     }
   }
 
@@ -38,6 +80,56 @@ export const Gallery = () => {
       <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 700, marginBottom: 3 }}>
         Gallery
       </Typography>
+
+      {folders.length > 0 && (
+        <Box sx={{ marginBottom: 3 }}>
+          <Typography variant="subtitle2" color="text.secondary" sx={{ marginBottom: 1 }}>
+            Drag images onto a folder to add them
+          </Typography>
+          <Box
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 1,
+            }}
+          >
+            <Chip
+              label="Uncategorized"
+              onClick={() => {}}
+              onDragOver={(e) => handleFolderDragOver(e, '')}
+              onDragLeave={handleFolderDragLeave}
+              onDrop={(e) => handleFolderDrop(e, null)}
+              sx={{
+                backgroundColor: dragOverFolderId === '' ? 'primary.light' : 'grey.200',
+                border: dragOverFolderId === '' ? '2px dashed primary.main' : '2px dashed transparent',
+                cursor: 'default',
+                '&:hover': {
+                  backgroundColor: dragOverFolderId === '' ? 'primary.light' : 'grey.300',
+                },
+              }}
+            />
+            {folders.map((folder) => (
+              <Chip
+                key={folder.id}
+                icon={<FolderIcon />}
+                label={`${folder.name} (${folder.coloringPageCount || 0})`}
+                onClick={() => navigate(`/folders/${folder.id}`)}
+                onDragOver={(e) => handleFolderDragOver(e, folder.id)}
+                onDragLeave={handleFolderDragLeave}
+                onDrop={(e) => handleFolderDrop(e, folder.id)}
+                sx={{
+                  backgroundColor: dragOverFolderId === folder.id ? 'primary.light' : 'grey.200',
+                  border: dragOverFolderId === folder.id ? '2px dashed primary.main' : '2px dashed transparent',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    backgroundColor: dragOverFolderId === folder.id ? 'primary.light' : 'grey.300',
+                  },
+                }}
+              />
+            ))}
+          </Box>
+        </Box>
+      )}
 
       {coloringPages.length === 0 ? (
         <Box
@@ -65,6 +157,7 @@ export const Gallery = () => {
                 page={page}
                 onToggleFavorite={handleToggleFavorite}
                 isFavoritePending={toggleFavoriteMutation.isPending}
+                draggable={folders.length > 0}
               />
             </Grid>
           ))}

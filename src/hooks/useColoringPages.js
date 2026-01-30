@@ -4,6 +4,7 @@ import {
   generateColoringPage,
   toggleFavorite,
   deleteColoringPage,
+  moveColoringPageToFolder,
 } from '../api/coloringPages'
 
 export const useColoringPages = (userId, filters = {}) => {
@@ -40,6 +41,19 @@ export const useToggleFavorite = () => {
     mutationFn: ({ pageId, userId }) => toggleFavorite(pageId, userId),
     onSuccess: () => {
       queryClient.invalidateQueries(['coloringPages'])
+    },
+  })
+}
+
+export const useMoveToFolder = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ pageId, userId, folderId }) =>
+      moveColoringPageToFolder(pageId, userId, folderId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries(['coloringPages'])
+      queryClient.invalidateQueries(['folders', variables.userId])
     },
   })
 }

@@ -283,7 +283,7 @@ export const CreateColoringPage = () => {
                     <Button
                       size="small"
                       variant="contained"
-                      sx={{ marginLeft: 2, backgroundColor: '#81C784' }}
+                      sx={{ marginLeft: 2 }}
                       onClick={() => navigate('/profile')}
                     >
                       Upgrade Now!
@@ -301,9 +301,9 @@ export const CreateColoringPage = () => {
             disabled={generateMutation.isPending || !prompt.trim()}
             sx={{
               marginTop: 3,
-              backgroundColor: '#81C784',
+              backgroundColor: 'primary.main',
               '&:hover': {
-                backgroundColor: '#66BB6A',
+                backgroundColor: 'primary.dark',
               },
             }}
           >

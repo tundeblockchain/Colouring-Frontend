@@ -8,25 +8,25 @@ export const CreditDisplay = ({ credits, onRefresh }) => {
         display: 'flex',
         alignItems: 'center',
         gap: 1,
-        backgroundColor: '#E8F5E9',
+        backgroundColor: 'primary.light',
         padding: '8px 16px',
         borderRadius: 2,
       }}
     >
-      <Typography variant="body2" sx={{ fontWeight: 600, color: '#2E7D32' }}>
+      <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.dark' }}>
         {credits}
       </Typography>
-      <Typography variant="body2" sx={{ color: '#2E7D32' }}>
+      <Typography variant="body2" sx={{ color: 'primary.dark' }}>
         credits remaining
       </Typography>
       {onRefresh && (
         <IconButton size="small" onClick={onRefresh}>
-          <Refresh fontSize="small" sx={{ color: '#2E7D32' }} />
+          <Refresh fontSize="small" sx={{ color: 'primary.dark' }} />
         </IconButton>
       )}
       <Tooltip title="Credits are used when generating coloring pages">
         <IconButton size="small">
-          <Info fontSize="small" sx={{ color: '#2E7D32' }} />
+          <Info fontSize="small" sx={{ color: 'primary.dark' }} />
         </IconButton>
       </Tooltip>
     </Box>
