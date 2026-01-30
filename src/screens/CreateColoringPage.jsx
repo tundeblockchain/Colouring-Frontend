@@ -51,10 +51,12 @@ export const CreateColoringPage = () => {
   )
   const [prompt, setPrompt] = useState('alien mother ship, crashing at beach.')
   const [autoImprove, setAutoImprove] = useState(true)
-  const [style, setStyle] = useState('fast')
+  const [quality, setQuality] = useState('fast')
   const [dimensions, setDimensions] = useState('2:3')
   const [numImages, setNumImages] = useState(1)
   const [autoUpscale, setAutoUpscale] = useState(false)
+  const [generatedPreviewUrl, setGeneratedPreviewUrl] = useState(null)
+  const [imageAspectRatio, setImageAspectRatio] = useState(null)
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue)
@@ -84,18 +86,19 @@ export const CreateColoringPage = () => {
         prompt: prompt.trim(),
         title: prompt.trim(),
         type: activeTab,
-        style,
+        quality,
         dimensions,
         folderId: null, // Can be updated later to support folder selection
       })
 
       if (result.success) {
-        // Update user credits from response if available
-        if (result.creditsRemaining !== undefined) {
-          // Credits are automatically updated via query invalidation
+        const imageUrl = result.data?.imageUrl || result.data?.thumbnailUrl
+        if (imageUrl) {
+          setGeneratedPreviewUrl(imageUrl)
+          setImageAspectRatio(null)
         }
-        navigate('/gallery')
-      } else {
+      }
+      if (!result.success) {
         const errorMessage = result.error || 'Failed to generate coloring page'
         if (result.status === 402) {
           alert('Insufficient credits. Please upgrade your plan.')
@@ -117,13 +120,107 @@ export const CreateColoringPage = () => {
   const isFreePlan = userProfile?.plan === 'free'
   const canGenerateMultiple = !isFreePlan
 
+  const aspectRatioMap = { '1:1': '1', '2:3': '2/3', '3:2': '3/2' }
+
   return (
     <MainLayout>
       <Box sx={{ display: 'flex', gap: 3, height: 'calc(100vh - 100px)' }}>
-        <Box sx={{ flex: 1, backgroundColor: '#282828', borderRadius: 2, padding: 3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Typography variant="h6" color="text.secondary">
-            No folders yet. Create one to get started!
-          </Typography>
+        <Box
+          sx={{
+            flex: 1,
+            backgroundColor: '#1a1a1a',
+            borderRadius: 2,
+            padding: 3,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: 0,
+            gap: 2,
+          }}
+        >
+          <Box
+            sx={{
+              width: '100%',
+              maxWidth: 280,
+              maxHeight: '70vh',
+              aspectRatio: generatedPreviewUrl && imageAspectRatio != null
+                ? imageAspectRatio
+                : (aspectRatioMap[dimensions] || '2/3'),
+              backgroundColor: '#000000',
+              borderRadius: 2,
+              border: '2px dashed rgba(255,255,255,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+              position: 'relative',
+            }}
+          >
+            {generateMutation.isPending ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                <CircularProgress sx={{ color: 'primary.main' }} />
+                <Typography variant="body2" color="text.secondary">
+                  Creating your coloring page...
+                </Typography>
+              </Box>
+            ) : generatedPreviewUrl ? (
+              <Box
+                component="img"
+                src={generatedPreviewUrl}
+                alt="Generated coloring page"
+                onLoad={(e) => {
+                  const { naturalWidth, naturalHeight } = e.target
+                  if (naturalWidth && naturalHeight) {
+                    setImageAspectRatio(`${naturalWidth} / ${naturalHeight}`)
+                  }
+                }}
+                sx={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                }}
+              />
+            ) : (
+              <Typography
+                variant="body2"
+                sx={{
+                  color: 'rgba(255,255,255,0.5)',
+                  textAlign: 'center',
+                  px: 2,
+                }}
+              >
+                Preview • Your coloring page will appear here
+              </Typography>
+            )}
+          </Box>
+          {generatedPreviewUrl && (
+            <Box sx={{ display: 'flex', gap: 1, width: '100%', maxWidth: 280 }}>
+              <Button
+                size="small"
+                variant="contained"
+                fullWidth
+                onClick={() => navigate('/gallery')}
+                sx={{
+                  backgroundColor: 'primary.main',
+                  '&:hover': { backgroundColor: 'primary.dark' },
+                }}
+              >
+                View in gallery
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => {
+                  setGeneratedPreviewUrl(null)
+                  setImageAspectRatio(null)
+                }}
+                sx={{ borderColor: 'rgba(255,255,255,0.5)', color: 'rgba(255,255,255,0.9)' }}
+              >
+                Create another
+              </Button>
+            </Box>
+          )}
         </Box>
 
         <Box sx={{ width: 500, backgroundColor: '#FFFFFF', borderRadius: 2, padding: 3, overflowY: 'auto' }}>
@@ -188,9 +285,21 @@ export const CreateColoringPage = () => {
               </Typography>
             </AccordionSummary>
             <AccordionDetails>
-              <Typography variant="body2" color="text.secondary">
-                Tips for creating better prompts will go here...
-              </Typography>
+              <Box component="span" sx={{ display: 'block' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ marginBottom: 2 }}>
+                  Describe the image you want to see. You can use a simple prompt, like &quot;A unicorn at the Grand Canyon&quot;.
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ marginBottom: 1, fontWeight: 500 }}>
+                  The best prompts include:
+                </Typography>
+                <Typography variant="body2" color="text.secondary" component="ul" sx={{ margin: 0, pl: 2.5 }}>
+                  <li style={{ marginBottom: 4 }}><strong>A subject</strong> – what or who is in the image</li>
+                  <li style={{ marginBottom: 4 }}><strong>A pose</strong> – try &quot;Diagonal pose&quot;, &quot;Turned slightly to the side&quot;, &quot;Straight-on view&quot;</li>
+                  <li style={{ marginBottom: 4 }}><strong>A setting</strong> – where the scene takes place</li>
+                  <li style={{ marginBottom: 4 }}><strong>A composition</strong> – try &quot;close up&quot;, &quot;full body&quot;, &quot;from behind&quot;</li>
+                  <li><strong>An artistic style</strong> – try &quot;Manga&quot;, &quot;Cartoon&quot;, &quot;Kawaii&quot;, &quot;Stained Glass&quot;, etc.</li>
+                </Typography>
+              </Box>
             </AccordionDetails>
           </Accordion>
 
@@ -203,26 +312,24 @@ export const CreateColoringPage = () => {
             <AccordionDetails>
               <Box sx={{ marginBottom: 3 }}>
                 <Typography variant="body2" sx={{ marginBottom: 1, fontWeight: 500 }}>
-                  Style
+                  Quality
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ marginBottom: 1, display: 'block' }}>
-                  Learn more about premium styles and see examples here.
+                  Higher quality may take longer to generate.
                 </Typography>
                 <TextField
                   fullWidth
                   select
-                  value={style}
-                  onChange={(e) => setStyle(e.target.value)}
+                  value={quality}
+                  onChange={(e) => setQuality(e.target.value)}
                   SelectProps={{
                     native: true,
                   }}
                   size="small"
                 >
-                  <option value="fast">Fast - fast generation and can handle a variety of styles. Can handle very simple...</option>
+                  <option value="fast">Fast – quicker generation, good for most prompts</option>
+                  <option value="standard">Standard – balanced quality and speed</option>
                 </TextField>
-                <Typography variant="caption" color="text.secondary" sx={{ marginTop: 1, display: 'block' }}>
-                  Looking for a different style? Let me know at ben@colorbliss.com and I can add it!
-                </Typography>
               </Box>
 
               <Box sx={{ marginBottom: 3 }}>
@@ -234,10 +341,9 @@ export const CreateColoringPage = () => {
                     value={dimensions}
                     onChange={(e) => setDimensions(e.target.value)}
                   >
-                    <FormControlLabel value="2:3" control={<Radio />} label="2:3 (default)" />
-                    <FormControlLabel value="1:1" control={<Radio />} label="1:1 (square)" />
-                    <FormControlLabel value="3:2" control={<Radio />} label="3:2 (landscape)" />
-                    <FormControlLabel value="A4" control={<Radio />} label="A4 (portrait)" />
+                    <FormControlLabel value="1:1" control={<Radio />} label="Square" />
+                    <FormControlLabel value="2:3" control={<Radio />} label="Portrait (default)" />
+                    <FormControlLabel value="3:2" control={<Radio />} label="Landscape" />
                   </RadioGroup>
                 </FormControl>
               </Box>

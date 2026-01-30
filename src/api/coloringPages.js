@@ -5,7 +5,7 @@ import { apiRequest } from './apiClient'
  * Generate a coloring page
  */
 export const generateColoringPage = async (params) => {
-  const { userId, prompt, title, type, style, dimensions, folderId } = params
+  const { userId, prompt, title, type, style, quality, dimensions, folderId } = params
 
   if (!prompt || !prompt.trim()) {
     return {
@@ -14,14 +14,18 @@ export const generateColoringPage = async (params) => {
     }
   }
 
+  const qualityValue = quality || style || 'fast'
+
   const requestBody = {
     prompt: prompt.trim(),
+    type: type || 'text',
+    size: dimensions || '2:3',
+    dimensions: dimensions || '2:3',
+    quality: qualityValue,
+    style: qualityValue,
   }
 
   if (title) requestBody.title = title
-  if (type) requestBody.type = type
-  if (style) requestBody.style = style
-  if (dimensions) requestBody.dimensions = dimensions
   if (folderId) requestBody.folderId = folderId
 
   const result = await apiRequest('/coloring-pages/generate', {

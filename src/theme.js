@@ -37,6 +37,7 @@ export const theme = createTheme({
   },
   typography: {
     fontFamily: [
+      '"Nunito"',
       '-apple-system',
       'BlinkMacSystemFont',
       '"Segoe UI"',
