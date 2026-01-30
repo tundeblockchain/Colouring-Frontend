@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useMemo } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Box, Typography, Grid, Chip } from '@mui/material'
 import { Folder as FolderIcon } from '@mui/icons-material'
 import { MainLayout } from '../components/Layout/MainLayout'
@@ -19,6 +19,17 @@ export const Gallery = () => {
   const { data: folders = [] } = useFolders(user?.uid)
   const toggleFavoriteMutation = useToggleFavorite()
   const moveToFolderMutation = useMoveToFolder()
+  const [searchParams] = useSearchParams()
+  const searchQuery = (searchParams.get('q') ?? '').trim().toLowerCase()
+
+  const filteredPages = useMemo(() => {
+    if (!searchQuery) return coloringPages
+    return coloringPages.filter(
+      (page) =>
+        page.title?.toLowerCase().includes(searchQuery) ||
+        page.prompt?.toLowerCase().includes(searchQuery)
+    )
+  }, [coloringPages, searchQuery])
 
   const [dragOverFolderId, setDragOverFolderId] = useState(null)
 
@@ -173,9 +184,27 @@ export const Gallery = () => {
             Create your first coloring page to get started!
           </Typography>
         </Box>
+      ) : filteredPages.length === 0 ? (
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '40vh',
+            textAlign: 'center',
+          }}
+        >
+          <Typography variant="h6" component="h2" gutterBottom sx={{ fontWeight: 600 }}>
+            No results for &quot;{searchParams.get('q')}&quot;
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Try a different search or clear the search to see all images.
+          </Typography>
+        </Box>
       ) : (
         <Grid container spacing={3}>
-          {coloringPages.map((page) => (
+          {filteredPages.map((page) => (
             <Grid item xs={12} sm={6} md={4} lg={3} key={page.id}>
               <ColoringPageCard
                 page={page}

@@ -1,4 +1,19 @@
-import { Box, TextField, InputAdornment, IconButton, Badge, Chip } from '@mui/material'
+import { useMemo, useRef } from 'react'
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
+import {
+  Box,
+  TextField,
+  InputAdornment,
+  IconButton,
+  Badge,
+  Chip,
+  Popover,
+  Typography,
+  Grid,
+  Card,
+  CardMedia,
+  CardActionArea,
+} from '@mui/material'
 import {
   SearchOutlined,
   NotificationsOutlined,
@@ -6,9 +21,51 @@ import {
   RefreshOutlined,
 } from '@mui/icons-material'
 import { useUser } from '../../hooks/useUser'
+import { useColoringPages } from '../../hooks/useColoringPages'
 
 export const Header = ({ user }) => {
+  const searchAnchorRef = useRef(null)
+  const navigate = useNavigate()
+  const location = useLocation()
   const { data: userProfile } = useUser(user?.uid)
+  const { data: coloringPages = [] } = useColoringPages(user?.uid)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const searchQuery = (searchParams.get('q') ?? '').trim()
+
+  const isOnGallery = location.pathname === '/gallery'
+  const showSearchPopover = !isOnGallery && searchQuery.length > 0
+
+  const filteredResults = useMemo(() => {
+    if (!searchQuery) return []
+    const lower = searchQuery.toLowerCase()
+    return coloringPages.filter(
+      (page) =>
+        page.title?.toLowerCase().includes(lower) ||
+        page.prompt?.toLowerCase().includes(lower)
+    )
+  }, [coloringPages, searchQuery])
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value
+    const next = new URLSearchParams(searchParams)
+    if (value) next.set('q', value)
+    else next.delete('q')
+    setSearchParams(next, { replace: true })
+  }
+
+  const handleCloseSearchPopover = () => {
+    const next = new URLSearchParams(searchParams)
+    next.delete('q')
+    setSearchParams(next, { replace: true })
+  }
+
+  const handleViewInGallery = () => {
+    navigate(`/gallery${searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : ''}`)
+  }
+
+  const handleResultClick = () => {
+    navigate(`/gallery${searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : ''}`)
+  }
 
   return (
     <Box
@@ -55,11 +112,16 @@ export const Header = ({ user }) => {
         </Box>
       </Box>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, maxWidth: 600, marginX: 4 }}>
+      <Box
+        ref={searchAnchorRef}
+        sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, maxWidth: 600, marginX: 4 }}
+      >
         <TextField
           placeholder="Search coloring pages..."
           size="small"
           fullWidth
+          value={searchParams.get('q') ?? ''}
+          onChange={handleSearchChange}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -109,6 +171,77 @@ export const Header = ({ user }) => {
           <InfoOutlined sx={{ color: 'text.secondary', fontSize: 20 }} />
         </IconButton>
       </Box>
+
+      <Popover
+        open={showSearchPopover}
+        onClose={handleCloseSearchPopover}
+        anchorEl={searchAnchorRef.current}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        disableEnforceFocus
+        disableAutoFocus
+        disableRestoreFocus
+        hideBackdrop
+        ModalProps={{
+          disableEnforceFocus: true,
+          disableAutoFocus: true,
+          disableRestoreFocus: true,
+        }}
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            mt: 2,
+            minWidth: searchAnchorRef.current?.offsetWidth ?? 400,
+            maxHeight: 400,
+            overflow: 'auto',
+            boxShadow: 3,
+          },
+        }}
+      >
+        <Box sx={{ p: 2 }} tabIndex={-1}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
+            Search results {searchQuery && `for "${searchQuery}"`}
+          </Typography>
+          {filteredResults.length === 0 ? (
+            <Typography color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+              No coloring pages match your search.
+            </Typography>
+          ) : (
+            <>
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                {filteredResults.map((page) => (
+                  <Grid item xs={6} sm={4} md={3} key={page.id}>
+                    <Card sx={{ overflow: 'hidden' }}>
+                      <CardActionArea onClick={handleResultClick}>
+                        <CardMedia
+                          component="img"
+                          height={120}
+                          image={page.thumbnailUrl || page.imageUrl}
+                          alt={page.title}
+                          sx={{ objectFit: 'cover' }}
+                        />
+                        <Box sx={{ p: 1 }}>
+                          <Typography variant="body2" noWrap title={page.title}>
+                            {page.title}
+                          </Typography>
+                        </Box>
+                      </CardActionArea>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
+                <Chip
+                  label="View all in Gallery"
+                  onClick={handleViewInGallery}
+                  color="primary"
+                  sx={{ cursor: 'pointer' }}
+                />
+              </Box>
+            </>
+          )}
+        </Box>
+      </Popover>
     </Box>
   )
 }
