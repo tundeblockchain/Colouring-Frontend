@@ -99,14 +99,26 @@ export const Gallery = () => {
               onDragOver={(e) => handleFolderDragOver(e, '')}
               onDragLeave={handleFolderDragLeave}
               onDrop={(e) => handleFolderDrop(e, null)}
-              sx={{
-                backgroundColor: dragOverFolderId === '' ? 'primary.light' : 'grey.200',
+              sx={(theme) => ({
+                backgroundColor:
+                  dragOverFolderId === ''
+                    ? 'primary.light'
+                    : theme.palette.mode === 'dark'
+                      ? theme.palette.grey[700]
+                      : theme.palette.grey[200],
+                color: theme.palette.text.primary,
                 border: dragOverFolderId === '' ? '2px dashed primary.main' : '2px dashed transparent',
                 cursor: 'default',
+                '& .MuiChip-icon': { color: 'inherit' },
                 '&:hover': {
-                  backgroundColor: dragOverFolderId === '' ? 'primary.light' : 'grey.300',
+                  backgroundColor:
+                    dragOverFolderId === ''
+                      ? 'primary.light'
+                      : theme.palette.mode === 'dark'
+                        ? theme.palette.grey[600]
+                        : theme.palette.grey[300],
                 },
-              }}
+              })}
             />
             {folders.map((folder) => (
               <Chip
@@ -117,14 +129,26 @@ export const Gallery = () => {
                 onDragOver={(e) => handleFolderDragOver(e, folder.id)}
                 onDragLeave={handleFolderDragLeave}
                 onDrop={(e) => handleFolderDrop(e, folder.id)}
-                sx={{
-                  backgroundColor: dragOverFolderId === folder.id ? 'primary.light' : 'grey.200',
+                sx={(theme) => ({
+                  backgroundColor:
+                    dragOverFolderId === folder.id
+                      ? 'primary.light'
+                      : theme.palette.mode === 'dark'
+                        ? theme.palette.grey[700]
+                        : theme.palette.grey[200],
+                  color: theme.palette.text.primary,
                   border: dragOverFolderId === folder.id ? '2px dashed primary.main' : '2px dashed transparent',
                   cursor: 'pointer',
+                  '& .MuiChip-icon': { color: 'inherit' },
                   '&:hover': {
-                    backgroundColor: dragOverFolderId === folder.id ? 'primary.light' : 'grey.300',
+                    backgroundColor:
+                      dragOverFolderId === folder.id
+                        ? 'primary.light'
+                        : theme.palette.mode === 'dark'
+                          ? theme.palette.grey[600]
+                          : theme.palette.grey[300],
                   },
-                }}
+                })}
               />
             ))}
           </Box>

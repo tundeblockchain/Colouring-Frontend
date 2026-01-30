@@ -303,7 +303,7 @@ export const CreateColoringPage = () => {
             </AccordionDetails>
           </Accordion>
 
-          <Accordion defaultExpanded>
+          <Accordion defaultExpanded sx={{ marginTop: 2 }}>
             <AccordionSummary expandIcon={<ExpandMore />}>
               <Typography variant="body2" sx={{ fontWeight: 500 }}>
                 Settings

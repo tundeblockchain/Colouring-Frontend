@@ -40,17 +40,17 @@ const darkPalette = {
   ...sharedPalette,
   mode: 'dark',
   background: {
-    default: '#121212',
-    paper: '#1e1e1e',
+    default: '#0d1b2a',   // deep navy
+    paper: '#1b2838',     // navy blue surface
   },
   text: {
-    primary: '#ffffff',
-    secondary: 'rgba(255, 255, 255, 0.7)',
+    primary: '#e8eef4',
+    secondary: 'rgba(232, 238, 244, 0.75)',
   },
-  divider: 'rgba(255, 255, 255, 0.12)',
+  divider: 'rgba(255, 255, 255, 0.1)',
   action: {
-    hover: 'rgba(255, 255, 255, 0.08)',
-    selected: 'rgba(255, 255, 255, 0.16)',
+    hover: 'rgba(100, 181, 246, 0.12)',
+    selected: 'rgba(100, 181, 246, 0.2)',
     disabled: 'rgba(255, 255, 255, 0.3)',
     disabledBackground: 'rgba(255, 255, 255, 0.12)',
   },
@@ -76,12 +76,13 @@ const typography = {
   button: { textTransform: 'none', fontWeight: 500 },
 }
 
-const shape = { borderRadius: 8 }
+const radius = 16
+const shape = { borderRadius: radius }
 
 const components = {
   MuiButton: {
     styleOverrides: {
-      root: { borderRadius: 8, padding: '10px 24px' },
+      root: { borderRadius: radius, padding: '10px 24px' },
       contained: {
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
         '&:hover': { boxShadow: '0 4px 8px rgba(0,0,0,0.15)' },
@@ -90,7 +91,58 @@ const components = {
   },
   MuiCard: {
     styleOverrides: {
-      root: { boxShadow: '0 2px 8px rgba(0,0,0,0.1)', borderRadius: 12 },
+      root: { boxShadow: '0 2px 8px rgba(0,0,0,0.1)', borderRadius: radius },
+    },
+  },
+  MuiAccordion: {
+    styleOverrides: {
+      root: {
+        borderRadius: `${radius}px !important`,
+        overflow: 'hidden',
+        '&:before': { display: 'none' },
+        '&.Mui-expanded': { margin: '0 !important' },
+        '& + &': { marginTop: 1 },
+      },
+    },
+  },
+  MuiChip: {
+    styleOverrides: {
+      root: { borderRadius: radius },
+    },
+  },
+  MuiPaper: {
+    styleOverrides: {
+      root: { borderRadius: radius },
+    },
+  },
+  MuiDialog: {
+    styleOverrides: {
+      paper: { borderRadius: radius },
+    },
+  },
+  MuiOutlinedInput: {
+    styleOverrides: {
+      root: { borderRadius: radius },
+    },
+  },
+  MuiListItemButton: {
+    styleOverrides: {
+      root: { borderRadius: radius },
+    },
+  },
+  MuiIconButton: {
+    styleOverrides: {
+      root: { borderRadius: radius / 2 },
+    },
+  },
+  MuiAlert: {
+    styleOverrides: {
+      root: { borderRadius: radius },
+    },
+  },
+  MuiCardContent: {
+    styleOverrides: {
+      root: { '&:last-child': { paddingBottom: 2 } },
     },
   },
 }
