@@ -223,7 +223,7 @@ export const CreateColoringPage = () => {
           )}
         </Box>
 
-        <Box sx={{ width: 500, backgroundColor: '#FFFFFF', borderRadius: 2, padding: 3, overflowY: 'auto' }}>
+        <Box sx={{ width: 500, backgroundColor: 'background.paper', borderRadius: 2, padding: 3, overflowY: 'auto' }}>
           <Tabs value={activeTab} onChange={handleTabChange} sx={{ marginBottom: 3 }}>
             <Tab label="Text Prompt" value="text" />
             {/* Word Art and Drawing tabs hidden for now */}

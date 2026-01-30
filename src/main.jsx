@@ -5,7 +5,8 @@ import { BrowserRouter } from 'react-router-dom'
 import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import App from './App'
-import { theme } from './theme'
+import { getTheme } from './theme'
+import { ThemeModeProvider, useThemeMode } from './contexts/ThemeModeContext'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -17,14 +18,26 @@ const queryClient = new QueryClient({
   },
 })
 
+const ThemeWrapper = ({ children }) => {
+  const { mode } = useThemeMode()
+  const theme = React.useMemo(() => getTheme(mode), [mode])
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      {children}
+    </ThemeProvider>
+  )
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <App />
-        </ThemeProvider>
+        <ThemeModeProvider>
+          <ThemeWrapper>
+            <App />
+          </ThemeWrapper>
+        </ThemeModeProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </React.StrictMode>,

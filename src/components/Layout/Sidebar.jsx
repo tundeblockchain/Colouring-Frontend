@@ -16,8 +16,11 @@ import {
   SettingsOutlined,
   LightbulbOutlined,
   LogoutOutlined,
+  DarkMode,
+  LightMode,
 } from '@mui/icons-material'
 import { useAuth } from '../../hooks/useAuth'
+import { useThemeMode } from '../../contexts/ThemeModeContext'
 import { logoutUser } from '../../api/auth'
 
 const menuItems = [
@@ -33,6 +36,7 @@ export const Sidebar = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { user } = useAuth()
+  const { mode, toggleMode } = useThemeMode()
 
   const handleLogout = async () => {
     await logoutUser()
@@ -49,8 +53,9 @@ export const Sidebar = () => {
       sx={{
         width: 80,
         height: '100vh',
-        backgroundColor: '#FFFFFF',
-        borderRight: '1px solid #E0E0E0',
+        backgroundColor: 'background.paper',
+        borderRight: 1,
+        borderColor: 'divider',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -75,11 +80,9 @@ export const Sidebar = () => {
                   sx={{
                     justifyContent: 'center',
                     minHeight: 56,
-                    backgroundColor: isActive
-                      ? 'rgba(100, 181, 246, 0.1)'
-                      : 'transparent',
+                    backgroundColor: isActive ? 'action.selected' : 'transparent',
                     '&:hover': {
-                      backgroundColor: 'rgba(100, 181, 246, 0.05)',
+                      backgroundColor: 'action.hover',
                     },
                   }}
                 >
@@ -108,6 +111,29 @@ export const Sidebar = () => {
           marginTop: 'auto',
         }}
       >
+        <Tooltip title={mode === 'dark' ? 'Light mode' : 'Dark mode'} placement="right">
+          <ListItemButton
+            onClick={toggleMode}
+            sx={{
+              justifyContent: 'center',
+              minHeight: 40,
+              '&:hover': {
+                backgroundColor: 'action.hover',
+              },
+            }}
+          >
+            <ListItemIcon
+              sx={{
+                minWidth: 0,
+                justifyContent: 'center',
+                color: 'text.secondary',
+              }}
+            >
+              {mode === 'dark' ? <LightMode fontSize="small" /> : <DarkMode fontSize="small" />}
+            </ListItemIcon>
+          </ListItemButton>
+        </Tooltip>
+
         <Tooltip title={user?.email || 'User'} placement="right">
           <Avatar
             sx={{
@@ -128,9 +154,9 @@ export const Sidebar = () => {
             sx={{
               justifyContent: 'center',
               minHeight: 40,
-              '&:hover': {
-                backgroundColor: 'rgba(100, 181, 246, 0.05)',
-              },
+            '&:hover': {
+              backgroundColor: 'action.hover',
+            },
             }}
           >
             <ListItemIcon

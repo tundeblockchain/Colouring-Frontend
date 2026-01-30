@@ -7,7 +7,7 @@ export const MainLayout = ({ children }) => {
   const { user } = useAuth()
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#FFFFFF' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: 'background.default' }}>
       <Sidebar />
       <Box
         sx={{

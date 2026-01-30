@@ -101,7 +101,7 @@ export const Login = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#F5F5F5',
+        backgroundColor: 'background.default',
       }}
     >
       <Container maxWidth="sm">

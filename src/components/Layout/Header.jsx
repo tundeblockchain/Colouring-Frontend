@@ -14,8 +14,9 @@ export const Header = ({ user }) => {
     <Box
       sx={{
         height: 70,
-        backgroundColor: '#FFFFFF',
-        borderBottom: '1px solid #E0E0E0',
+        backgroundColor: 'background.paper',
+        borderBottom: 1,
+        borderColor: 'divider',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -68,7 +69,7 @@ export const Header = ({ user }) => {
           }}
           sx={{
             '& .MuiOutlinedInput-root': {
-              backgroundColor: '#F5F5F5',
+              backgroundColor: 'action.hover',
               '& fieldset': {
                 borderColor: 'transparent',
               },
@@ -96,10 +97,10 @@ export const Header = ({ user }) => {
           color="primary"
           sx={{
             backgroundColor: 'primary.main',
-            color: '#FFFFFF',
+            color: 'primary.contrastText',
             fontWeight: 500,
             '& .MuiChip-icon': {
-              color: '#FFFFFF',
+              color: 'primary.contrastText',
             },
           }}
         />
