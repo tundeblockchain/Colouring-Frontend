@@ -1,6 +1,24 @@
 import { apiRequest } from './apiClient'
 
 /**
+ * Fetch subscription plans with prices from Stripe (via backend).
+ * Backend should return plans with Stripe price data (amount in cents, currency).
+ *
+ * Response shape: { plans: [ { id, name, tagline, credits, moreFeatures (string[]), popular, prices: { month: { amount, currency }, year: { amount, currency } } } ] }
+ */
+export const getSubscriptionPlans = async () => {
+  const result = await apiRequest('/subscriptions/plans', { method: 'GET' })
+  if (result.success && Array.isArray(result.data?.plans)) {
+    return { success: true, plans: result.data.plans }
+  }
+  return {
+    success: false,
+    plans: [],
+    error: result.data?.error || result.error || 'Failed to fetch plans',
+  }
+}
+
+/**
  * Create a Stripe Checkout session for subscription.
  * Backend should create the session with subscription metadata:
  * - userId: app user id (from X-User-Id or request)

@@ -29,6 +29,14 @@ import {
 import { useUser } from '../../hooks/useUser'
 import { useColoringPages } from '../../hooks/useColoringPages'
 
+const PLAN_CREDITS_BY_PLAN = {
+  free: 12,
+  starter: 250,
+  hobby: 500,
+  artist: 1000,
+  business: 5000,
+}
+
 export const Header = ({ user }) => {
   const searchAnchorRef = useRef(null)
   const creditsAnchorRef = useRef(null)
@@ -41,8 +49,12 @@ export const Header = ({ user }) => {
   const [creditsPopoverOpen, setCreditsPopoverOpen] = useState(false)
 
   const creditsRemaining = userProfile?.credits ?? 0
-  const planCredits = userProfile?.planCredits ?? 12
-  const creditsUsed = userProfile?.creditsUsed ?? Math.max(0, planCredits - creditsRemaining)
+  const planKey = (userProfile?.plan || 'free').toLowerCase()
+  const derivedPlanCredits = PLAN_CREDITS_BY_PLAN[planKey] ?? PLAN_CREDITS_BY_PLAN.free
+  const planCredits = userProfile?.planCredits ?? Math.max(derivedPlanCredits, creditsRemaining)
+  const creditsUsed =
+    userProfile?.creditsUsed ??
+    Math.max(0, planCredits - creditsRemaining)
   const planLabel = userProfile?.plan === 'free' || !userProfile?.plan ? 'Free Trial' : (userProfile?.plan ?? 'Free Trial')
 
   const isOnGallery = location.pathname === '/gallery'

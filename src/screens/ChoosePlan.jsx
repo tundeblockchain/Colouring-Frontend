@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   Box,
@@ -13,6 +13,7 @@ import {
   ListItemIcon,
   ListItemText,
   Grid,
+  CircularProgress,
 } from '@mui/material'
 import {
   Check as CheckIcon,
@@ -26,10 +27,21 @@ import {
 import { MainLayout } from '../components/Layout/MainLayout'
 import { useAuth } from '../hooks/useAuth'
 import { useUser } from '../hooks/useUser'
+import { useSubscriptionPlans } from '../hooks/useSubscriptionPlans'
 import { useToast } from '../contexts/ToastContext'
 import { createCheckoutSession } from '../api/subscriptions'
 
-const PLANS = [
+/** Format Stripe price (amount in cents) with currency */
+const formatPrice = (amountInCents, currency = 'usd') => {
+  const value = amountInCents / 100
+  try {
+    return new Intl.NumberFormat(undefined, { style: 'currency', currency: currency.toUpperCase() }).format(value)
+  } catch {
+    return `${currency.toUpperCase()} ${value.toFixed(2)}`
+  }
+}
+
+const FALLBACK_PLANS = [
   {
     id: 'starter',
     name: 'Starter',
@@ -72,6 +84,13 @@ const PLANS = [
   },
 ]
 
+const PLAN_PAGE_LIMIT = {
+  starter: 100,
+  hobby: 200,
+  artist: 400,
+  business: 2000,
+}
+
 const baseFeatures = [
   { text: 'Create coloring pages from text prompts', icon: ChatBubbleOutlined },
   { text: 'Create coloring pages with words, names, and numbers', icon: AbcOutlined },
@@ -82,12 +101,27 @@ export const ChoosePlan = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { data: userProfile } = useUser(user?.uid)
+  const { data: apiPlans = [], isLoading: plansLoading } = useSubscriptionPlans()
   const { showToast } = useToast()
   const [interval, setInterval] = useState('month')
   const [selectedPlanId, setSelectedPlanId] = useState(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
 
+  const plans = useMemo(() => {
+    if (apiPlans?.length) return apiPlans
+    return FALLBACK_PLANS
+  }, [apiPlans])
+
   const currentPlanId = userProfile?.plan === 'free' ? null : (userProfile?.plan || '').toLowerCase()
+
+  const getPriceForPlan = (plan) => {
+    const key = interval === 'year' ? 'year' : 'month'
+    if (plan.prices?.[key]) {
+      return { amount: plan.prices[key].amount, currency: plan.prices[key].currency || 'usd' }
+    }
+    const amountDollars = interval === 'year' ? plan.priceAnnual : plan.priceMonthly
+    return { amount: (amountDollars ?? 0) * 100, currency: 'usd' }
+  }
 
   const handleProceedToPayment = async () => {
     if (!selectedPlanId || !user?.uid) {
@@ -110,19 +144,21 @@ export const ChoosePlan = () => {
   return (
     <MainLayout>
       <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
-        <Link
+        <Box
+          component={Link}
           to="/dashboard"
-          style={{
+          sx={{
             display: 'inline-flex',
             alignItems: 'center',
             color: 'primary.main',
             textDecoration: 'none',
-            marginBottom: 16,
+            mb: 2,
             fontSize: '0.875rem',
+            '&:hover': { textDecoration: 'underline', color: 'primary.light' },
           }}
         >
           ← Back to Dashboard
-        </Link>
+        </Box>
 
         <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 700, marginBottom: 1 }}>
           Choose Your Plan
@@ -165,12 +201,17 @@ export const ChoosePlan = () => {
           </ToggleButtonGroup>
         </Box>
 
+        {plansLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          {PLANS.map((plan) => {
+          {plans.map((plan) => {
             const isSelected = selectedPlanId === plan.id
             const isCurrent = currentPlanId === plan.id
-            const price = interval === 'year' ? plan.priceAnnual : plan.priceMonthly
-            const creditRange = plan.credits <= 250 ? '50-250' : plan.credits <= 500 ? '100-500' : plan.credits <= 1000 ? '200-1000' : '1000-5000'
+            const priceInfo = getPriceForPlan(plan)
+            const pageLimit = PLAN_PAGE_LIMIT[plan.id] ?? 100
             return (
               <Grid item xs={12} sm={6} md={3} key={plan.id}>
                 <Card
@@ -220,10 +261,10 @@ export const ChoosePlan = () => {
                       </Typography>
                     </Box>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                      (typically {creditRange} coloring pages)
+                      (typically up to {pageLimit} coloring pages)
                     </Typography>
                     <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
-                      ${price}
+                      {formatPrice(priceInfo.amount, priceInfo.currency)}
                       {interval === 'year' ? '/yr' : '/mo'}
                     </Typography>
                     <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
@@ -235,37 +276,53 @@ export const ChoosePlan = () => {
                           <CheckIcon color="success" fontSize="small" />
                         </ListItemIcon>
                         <ListItemText
-                          primary={`${plan.credits.toLocaleString()} credits per month (typically ${creditRange} coloring pages)`}
+                          primary={`${plan.credits.toLocaleString()} credits per month (typically up to ${pageLimit} coloring pages)`}
                           primaryTypographyProps={{ variant: 'body2' }}
                         />
                       </ListItem>
-                      {baseFeatures.map((f) => (
-                        <ListItem key={f.text} disablePadding sx={{ py: 0.25 }}>
-                          <ListItemIcon sx={{ minWidth: 32 }}>
-                            <CheckIcon color="success" fontSize="small" />
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={f.text}
-                            primaryTypographyProps={{ variant: 'body2' }}
-                          />
-                        </ListItem>
-                      ))}
-                      <ListItem disablePadding sx={{ py: 0.25 }}>
-                        <ListItemIcon sx={{ minWidth: 32 }}>
-                          <EditOutlined sx={{ color: 'warning.main', fontSize: 20 }} />
-                        </ListItemIcon>
-                        <ListItemText
-                          primary="Adjust color, contrast, and brightness"
-                          primaryTypographyProps={{ variant: 'body2' }}
-                        />
-                      </ListItem>
-                      <ListItem disablePadding sx={{ py: 0.25 }}>
-                        <ListItemIcon sx={{ minWidth: 32 }} />
-                        <ListItemText
-                          primary={`+ ${plan.moreFeatures} more features`}
-                          primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
-                        />
-                      </ListItem>
+                      {Array.isArray(plan.moreFeatures)
+                        ? plan.moreFeatures.map((feature) => (
+                            <ListItem key={feature} disablePadding sx={{ py: 0.25 }}>
+                              <ListItemIcon sx={{ minWidth: 32 }}>
+                                <CheckIcon color="success" fontSize="small" />
+                              </ListItemIcon>
+                              <ListItemText
+                                primary={feature}
+                                primaryTypographyProps={{ variant: 'body2' }}
+                              />
+                            </ListItem>
+                          ))
+                        : (
+                          <>
+                            {baseFeatures.map((f) => (
+                              <ListItem key={f.text} disablePadding sx={{ py: 0.25 }}>
+                                <ListItemIcon sx={{ minWidth: 32 }}>
+                                  <CheckIcon color="success" fontSize="small" />
+                                </ListItemIcon>
+                                <ListItemText
+                                  primary={f.text}
+                                  primaryTypographyProps={{ variant: 'body2' }}
+                                />
+                              </ListItem>
+                            ))}
+                            <ListItem disablePadding sx={{ py: 0.25 }}>
+                              <ListItemIcon sx={{ minWidth: 32 }}>
+                                <EditOutlined sx={{ color: 'warning.main', fontSize: 20 }} />
+                              </ListItemIcon>
+                              <ListItemText
+                                primary="Adjust color, contrast, and brightness"
+                                primaryTypographyProps={{ variant: 'body2' }}
+                              />
+                            </ListItem>
+                            <ListItem disablePadding sx={{ py: 0.25 }}>
+                              <ListItemIcon sx={{ minWidth: 32 }} />
+                              <ListItemText
+                                primary={`+ ${plan.moreFeatures ?? 0} more features`}
+                                primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
+                              />
+                            </ListItem>
+                          </>
+                        )}
                     </List>
                     <Button
                       fullWidth
@@ -294,6 +351,7 @@ export const ChoosePlan = () => {
             )
           })}
         </Grid>
+        )}
 
         <Box
           sx={{
