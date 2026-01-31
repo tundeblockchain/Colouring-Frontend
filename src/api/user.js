@@ -78,6 +78,25 @@ export const updateUserProfile = async (userId, updates) => {
 }
 
 /**
+ * Delete user account and all associated data.
+ * Backend should cancel subscriptions, remove user data, etc.
+ */
+export const deleteUserProfile = async (userId) => {
+  const result = await apiRequest(`/users/${userId}`, {
+    method: 'DELETE',
+    userId,
+  })
+  if (result.success) {
+    return { success: true }
+  }
+  return {
+    success: false,
+    error: result.data?.error || result.error || 'Failed to delete account',
+    status: result.status,
+  }
+}
+
+/**
  * Deduct credits for generation
  */
 export const deductCredits = async (userId, amount) => {

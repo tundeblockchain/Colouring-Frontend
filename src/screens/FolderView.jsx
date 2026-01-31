@@ -214,7 +214,7 @@ export const FolderView = () => {
             boxShadow: 1,
           }}
         >
-          <CardContent>
+          <CardContent sx={{ pt: 1.5, pb: 2, '&:last-child': { pb: 2 } }}>
             <Typography variant="h6" color="text.secondary" gutterBottom>
               this folder is empty
             </Typography>

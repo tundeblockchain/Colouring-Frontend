@@ -12,6 +12,7 @@ import { CreateColoringPage } from './screens/CreateColoringPage'
 import { Profile } from './screens/Profile'
 import { Folders } from './screens/Folders'
 import { FolderView } from './screens/FolderView'
+import { ChoosePlan } from './screens/ChoosePlan'
 
 // Components
 import { AuthHandler } from './components/AuthHandler'
@@ -107,6 +108,14 @@ function App() {
         element={
           <ProtectedRoute>
             <FolderView />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/choose-plan"
+        element={
+          <ProtectedRoute>
+            <ChoosePlan />
           </ProtectedRoute>
         }
       />

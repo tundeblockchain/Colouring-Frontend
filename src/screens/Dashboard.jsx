@@ -76,7 +76,7 @@ export const Dashboard = () => {
                   alt={card.title}
                   sx={{ objectFit: 'cover' }}
                 />
-                <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', pt: 1.5, pb: 2, '&:last-child': { pb: 2 } }}>
                   <Typography variant="h6" component="h2" gutterBottom sx={{ fontWeight: 600 }}>
                     {card.title}
                   </Typography>

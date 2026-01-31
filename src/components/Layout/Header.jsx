@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   Box,
@@ -13,24 +13,37 @@ import {
   Card,
   CardMedia,
   CardActionArea,
+  Button,
+  Divider,
 } from '@mui/material'
 import {
   SearchOutlined,
   NotificationsOutlined,
   InfoOutlined,
   RefreshOutlined,
+  CardGiftcardOutlined,
+  ConfirmationNumberOutlined,
+  ScheduleOutlined,
+  WorkspacePremiumOutlined,
 } from '@mui/icons-material'
 import { useUser } from '../../hooks/useUser'
 import { useColoringPages } from '../../hooks/useColoringPages'
 
 export const Header = ({ user }) => {
   const searchAnchorRef = useRef(null)
+  const creditsAnchorRef = useRef(null)
   const navigate = useNavigate()
   const location = useLocation()
   const { data: userProfile } = useUser(user?.uid)
   const { data: coloringPages = [] } = useColoringPages(user?.uid)
   const [searchParams, setSearchParams] = useSearchParams()
   const searchQuery = (searchParams.get('q') ?? '').trim()
+  const [creditsPopoverOpen, setCreditsPopoverOpen] = useState(false)
+
+  const creditsRemaining = userProfile?.credits ?? 0
+  const planCredits = userProfile?.planCredits ?? 12
+  const creditsUsed = userProfile?.creditsUsed ?? Math.max(0, planCredits - creditsRemaining)
+  const planLabel = userProfile?.plan === 'free' || !userProfile?.plan ? 'Free Trial' : (userProfile?.plan ?? 'Free Trial')
 
   const isOnGallery = location.pathname === '/gallery'
   const showSearchPopover = !isOnGallery && searchQuery.length > 0
@@ -154,13 +167,16 @@ export const Header = ({ user }) => {
         </IconButton>
 
         <Chip
+          ref={creditsAnchorRef}
           icon={<RefreshOutlined fontSize="small" />}
-          label={`${userProfile?.credits || 0} credits remaining`}
+          label={`${creditsRemaining} credits remaining`}
           color="primary"
+          onClick={() => setCreditsPopoverOpen(true)}
           sx={{
             backgroundColor: 'primary.main',
             color: 'primary.contrastText',
             fontWeight: 500,
+            cursor: 'pointer',
             '& .MuiChip-icon': {
               color: 'primary.contrastText',
             },
@@ -220,7 +236,7 @@ export const Header = ({ user }) => {
                           alt={page.title}
                           sx={{ objectFit: 'cover' }}
                         />
-                        <Box sx={{ p: 1 }}>
+                        <Box sx={{ p: 1, pt: 1, pb: 1.5 }}>
                           <Typography variant="body2" noWrap title={page.title}>
                             {page.title}
                           </Typography>
@@ -240,6 +256,113 @@ export const Header = ({ user }) => {
               </Box>
             </>
           )}
+        </Box>
+      </Popover>
+
+      <Popover
+        open={creditsPopoverOpen}
+        onClose={() => setCreditsPopoverOpen(false)}
+        anchorEl={creditsAnchorRef.current}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            mt: 1.5,
+            minWidth: 280,
+            boxShadow: 3,
+          },
+        }}
+      >
+        <Box sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <WorkspacePremiumOutlined sx={{ color: 'primary.main', fontSize: 22 }} />
+            <Typography variant="subtitle1" fontWeight={700}>
+              {planLabel}
+            </Typography>
+          </Box>
+          <Divider sx={{ mb: 2 }} />
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CardGiftcardOutlined sx={{ color: 'secondary.main', fontSize: 20 }} />
+                <Typography variant="body2" color="text.secondary">
+                  Plan Credits
+                </Typography>
+              </Box>
+              <Typography variant="body2" fontWeight={600}>
+                {planCredits}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <ConfirmationNumberOutlined sx={{ color: 'warning.main', fontSize: 20 }} />
+                <Typography variant="body2" color="text.secondary">
+                  Credits used
+                </Typography>
+              </Box>
+              <Typography variant="body2" fontWeight={600}>
+                {creditsUsed}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <ScheduleOutlined sx={{ color: 'info.main', fontSize: 20 }} />
+                <Typography variant="body2" color="text.secondary">
+                  Credits remaining
+                </Typography>
+              </Box>
+              <Typography variant="body2" fontWeight={600}>
+                {creditsRemaining}
+              </Typography>
+            </Box>
+          </Box>
+          <Box
+            component="a"
+            href="#"
+            onClick={(e) => {
+              e.preventDefault()
+              setCreditsPopoverOpen(false)
+              navigate('/profile')
+            }}
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 0.5,
+              fontSize: '0.875rem',
+              color: 'primary.main',
+              textDecoration: 'none',
+              mb: 2,
+              '&:hover': { textDecoration: 'underline' },
+            }}
+          >
+            <InfoOutlined sx={{ fontSize: 16 }} />
+            Credits FAQ
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => {
+                setCreditsPopoverOpen(false)
+                navigate('/choose-plan')
+              }}
+              sx={{ borderColor: 'divider', color: 'text.primary' }}
+            >
+              Upgrade plan
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => {
+                setCreditsPopoverOpen(false)
+                navigate('/choose-plan')
+              }}
+              sx={{ borderColor: 'divider', color: 'text.primary' }}
+            >
+              Add more credits
+            </Button>
+          </Box>
         </Box>
       </Popover>
     </Box>

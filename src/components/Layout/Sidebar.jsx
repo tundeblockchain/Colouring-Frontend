@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Box,
@@ -7,6 +8,12 @@ import {
   ListItemIcon,
   Tooltip,
   Avatar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
 } from '@mui/material'
 import {
   AddPhotoAlternateOutlined,
@@ -37,8 +44,10 @@ export const Sidebar = () => {
   const location = useLocation()
   const { user } = useAuth()
   const { mode, toggleMode } = useThemeMode()
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
 
   const handleLogout = async () => {
+    setLogoutDialogOpen(false)
     await logoutUser()
     navigate('/login')
   }
@@ -150,7 +159,7 @@ export const Sidebar = () => {
 
         <Tooltip title="Logout" placement="right">
           <ListItemButton
-            onClick={handleLogout}
+            onClick={() => setLogoutDialogOpen(true)}
             sx={{
               justifyContent: 'center',
               minHeight: 40,
@@ -171,6 +180,21 @@ export const Sidebar = () => {
           </ListItemButton>
         </Tooltip>
       </Box>
+
+      <Dialog open={logoutDialogOpen} onClose={() => setLogoutDialogOpen(false)}>
+        <DialogTitle>Sign out?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to sign out?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLogoutDialogOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleLogout} color="primary">
+            Sign out
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

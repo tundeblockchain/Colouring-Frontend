@@ -5,6 +5,8 @@ import {
   onAuthStateChanged,
   signInWithPopup,
   GoogleAuthProvider,
+  updatePassword as firebaseUpdatePassword,
+  deleteUser as firebaseDeleteUser,
 } from 'firebase/auth'
 import { auth } from './firebase'
 
@@ -92,4 +94,44 @@ export const signInWithGoogle = async () => {
  */
 export const subscribeToAuth = (callback) => {
   return onAuthStateChanged(auth, callback)
+}
+
+/**
+ * Update the current user's password (Firebase Auth).
+ * Requires the user to have signed in recently; otherwise use re-authentication.
+ */
+export const updatePassword = async (newPassword) => {
+  const currentUser = auth.currentUser
+  if (!currentUser) {
+    return { success: false, error: 'You must be logged in to update your password.' }
+  }
+  try {
+    await firebaseUpdatePassword(currentUser, newPassword)
+    return { success: true }
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * Delete the current Firebase Auth user. Call after backend has deleted user data.
+ * This signs the user out.
+ */
+export const deleteAuthUser = async () => {
+  const currentUser = auth.currentUser
+  if (!currentUser) {
+    return { success: false, error: 'You must be logged in to delete your account.' }
+  }
+  try {
+    await firebaseDeleteUser(currentUser)
+    return { success: true }
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+    }
+  }
 }

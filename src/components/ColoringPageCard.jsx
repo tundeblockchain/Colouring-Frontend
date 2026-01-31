@@ -83,7 +83,7 @@ export const ColoringPageCard = ({
           }}
         />
       </IconButton>
-      <CardContent>
+      <CardContent sx={{ pt: 1.5, pb: 2, '&:last-child': { pb: 2 } }}>
         <Typography variant="body2" fontWeight={500} noWrap>
           {page.title}
         </Typography>
