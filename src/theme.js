@@ -20,7 +20,7 @@ const lightPalette = {
   ...sharedPalette,
   mode: 'light',
   background: {
-    default: '#FFFFFF',
+    default: '#f5f5f5',
     paper: '#FFFFFF',
   },
   text: {

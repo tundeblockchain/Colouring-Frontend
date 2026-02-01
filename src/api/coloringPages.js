@@ -4,40 +4,63 @@ import { apiRequest } from './apiClient'
 /**
  * Generate one or more coloring pages (up to 6).
  * All generated pages can be assigned to the same folder via folderId.
+ * For type 'photo', pass imageFile (File) to upload an image; the backend generates based on it.
  *
- * @param {object} params - { userId, prompt, title, type, style, quality, dimensions, folderId, numImages (1-6) }
+ * @param {object} params - { userId, prompt, title, type, style, quality, dimensions, folderId, numImages (1-6), imageFile?: File }
  * @returns {{ success: boolean, data?: { coloringPages: ColoringPage[], creditsRemaining?: number }, error?: string }}
  */
 export const generateColoringPage = async (params) => {
-  const { userId, prompt, title, type, style, quality, dimensions, folderId, numImages = 1 } = params
+  const { userId, prompt, title, type, style, quality, dimensions, folderId, numImages = 1, imageFile } = params
 
-  if (!prompt || !prompt.trim()) {
+  const isPhoto = type === 'photo'
+  const hasPrompt = prompt != null && String(prompt).trim().length > 0
+  if (!isPhoto && !hasPrompt) {
     return {
       success: false,
       error: 'Prompt is required',
+    }
+  }
+  if (isPhoto && !imageFile) {
+    return {
+      success: false,
+      error: 'Please upload a photo',
     }
   }
 
   const count = Math.min(6, Math.max(1, parseInt(numImages, 10) || 1))
   const qualityValue = quality || style || 'fast'
 
-  const requestBody = {
-    prompt: prompt.trim(),
-    type: type || 'text',
-    size: dimensions || '2:3',
-    dimensions: dimensions || '2:3',
-    quality: qualityValue,
-    style: qualityValue,
-    numImages: count,
+  let body
+  if (imageFile) {
+    body = new FormData()
+    body.append('image', imageFile)
+    body.append('prompt', hasPrompt ? String(prompt).trim() : '')
+    body.append('type', type || 'photo')
+    body.append('size', dimensions || '2:3')
+    body.append('dimensions', dimensions || '2:3')
+    body.append('quality', qualityValue)
+    body.append('style', qualityValue)
+    body.append('numImages', String(count))
+    if (title) body.append('title', title)
+    if (folderId) body.append('folderId', folderId)
+  } else {
+    body = {
+      prompt: prompt.trim(),
+      type: type || 'text',
+      size: dimensions || '2:3',
+      dimensions: dimensions || '2:3',
+      quality: qualityValue,
+      style: qualityValue,
+      numImages: count,
+    }
+    if (title) body.title = title
+    if (folderId) body.folderId = folderId
   }
-
-  if (title) requestBody.title = title
-  if (folderId) requestBody.folderId = folderId
 
   const result = await apiRequest('/coloring-pages/generate', {
     method: 'POST',
     userId,
-    body: requestBody,
+    body,
   })
 
   if (result.success) {

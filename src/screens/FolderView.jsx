@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Box,
+  Menu,
+  MenuItem,
   Typography,
   Button,
   Grid,
@@ -23,7 +25,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useFolders, useUpdateFolder, useDeleteFolder } from '../hooks/useFolders'
 import { useColoringPages, useToggleFavorite } from '../hooks/useColoringPages'
 import { useToast } from '../contexts/ToastContext'
-import { downloadImage } from '../utils/downloadImage'
+import { downloadImage, downloadImagesAsPdf, downloadImagesAsZip } from '../utils/downloadImage'
 
 export const FolderView = () => {
   const { folderId } = useParams()
@@ -46,6 +48,7 @@ export const FolderView = () => {
   const [renameOpen, setRenameOpen] = useState(false)
   const [renameValue, setRenameValue] = useState('')
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [downloadMenuAnchor, setDownloadMenuAnchor] = useState(null)
 
   const handleToggleFavorite = async (pageId) => {
     if (!user?.uid) return
@@ -64,13 +67,29 @@ export const FolderView = () => {
     navigate('/gallery')
   }
 
-  const handleDownloadAll = async () => {
+  const handleDownloadMenuOpen = (e) => setDownloadMenuAnchor(e.currentTarget)
+  const handleDownloadMenuClose = () => setDownloadMenuAnchor(null)
+
+  const handleDownloadAllAsPng = async () => {
+    handleDownloadMenuClose()
     if (pagesInFolder.length === 0) return
-    for (let i = 0; i < pagesInFolder.length; i++) {
-      const page = pagesInFolder[i]
-      await downloadImage(page.imageUrl || page.thumbnailUrl, page.title)
-    }
-    showToast(`Downloaded ${pagesInFolder.length} page(s)`)
+    const items = pagesInFolder.map((p) => ({
+      url: p.imageUrl || p.thumbnailUrl,
+      title: p.title,
+    }))
+    await downloadImagesAsZip(items, folder?.name || 'coloring-pages')
+    showToast(`Downloaded ${pagesInFolder.length} page(s) as ZIP`)
+  }
+
+  const handleDownloadAllAsPdf = async () => {
+    handleDownloadMenuClose()
+    if (pagesInFolder.length === 0) return
+    const items = pagesInFolder.map((p) => ({
+      url: p.imageUrl || p.thumbnailUrl,
+      title: p.title,
+    }))
+    await downloadImagesAsPdf(items, folder?.name || 'coloring-pages')
+    showToast(`Downloaded ${pagesInFolder.length} page(s) as PDF`)
   }
 
   const handleOpenRename = () => {
@@ -170,7 +189,7 @@ export const FolderView = () => {
             <Button
               variant="contained"
               startIcon={<Download />}
-              onClick={handleDownloadAll}
+              onClick={handleDownloadMenuOpen}
               disabled={isEmpty}
               sx={{
                 backgroundColor: isEmpty ? 'action.disabledBackground' : 'primary.main',
@@ -180,6 +199,16 @@ export const FolderView = () => {
             >
               Download all ({pagesInFolder.length})
             </Button>
+            <Menu
+              anchorEl={downloadMenuAnchor}
+              open={Boolean(downloadMenuAnchor)}
+              onClose={handleDownloadMenuClose}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+            >
+              <MenuItem onClick={handleDownloadAllAsPng}>Download all as PNG (ZIP)</MenuItem>
+              <MenuItem onClick={handleDownloadAllAsPdf}>Download all as PDF</MenuItem>
+            </Menu>
             <Button
               variant="outlined"
               startIcon={<Edit />}

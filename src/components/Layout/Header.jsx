@@ -51,10 +51,13 @@ export const Header = ({ user }) => {
   const creditsRemaining = userProfile?.credits ?? 0
   const planKey = (userProfile?.plan || 'free').toLowerCase()
   const derivedPlanCredits = PLAN_CREDITS_BY_PLAN[planKey] ?? PLAN_CREDITS_BY_PLAN.free
-  const planCredits = userProfile?.planCredits ?? Math.max(derivedPlanCredits, creditsRemaining)
-  const creditsUsed =
-    userProfile?.creditsUsed ??
-    Math.max(0, planCredits - creditsRemaining)
+  // Use known plan allowance for standard plans so display is correct after upgrades
+  const planCredits =
+    planKey && derivedPlanCredits != null
+      ? derivedPlanCredits
+      : (userProfile?.planCredits ?? derivedPlanCredits)
+  // Derive used from allowance minus remaining so we don't show stale/wrong API creditsUsed
+  const creditsUsed = Math.max(0, planCredits - creditsRemaining)
   const planLabel = userProfile?.plan === 'free' || !userProfile?.plan ? 'Free Trial' : (userProfile?.plan ?? 'Free Trial')
 
   const isOnGallery = location.pathname === '/gallery'

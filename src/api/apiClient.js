@@ -5,18 +5,18 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'
 
 /**
- * Get headers for API requests
+ * Get headers for API requests. Omit Content-Type when body is FormData so the browser sets multipart boundary.
  */
-export const getHeaders = (userId, additionalHeaders = {}) => {
-  const headers = {
-    'Content-Type': 'application/json',
-    ...additionalHeaders,
+export const getHeaders = (userId, additionalHeaders = {}, body) => {
+  const headers = { ...additionalHeaders }
+  if (body instanceof FormData) {
+    // Do not set Content-Type; browser will set multipart/form-data with boundary
+  } else {
+    headers['Content-Type'] = 'application/json'
   }
-
   if (userId) {
     headers['X-User-Id'] = userId
   }
-
   return headers
 }
 
@@ -60,14 +60,14 @@ export const apiRequest = async (endpoint, options = {}) => {
   const { userId, method = 'GET', body, headers: customHeaders = {} } = options
 
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`
-  
+
   const requestOptions = {
     method,
-    headers: getHeaders(userId, customHeaders),
+    headers: getHeaders(userId, customHeaders, body),
   }
 
   if (body) {
-    requestOptions.body = JSON.stringify(body)
+    requestOptions.body = body instanceof FormData ? body : JSON.stringify(body)
   }
 
   try {

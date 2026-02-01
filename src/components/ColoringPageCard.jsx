@@ -1,4 +1,5 @@
-import { Card, CardMedia, CardContent, IconButton, Typography } from '@mui/material'
+import { useState } from 'react'
+import { Card, CardMedia, CardContent, IconButton, Typography, Menu, MenuItem } from '@mui/material'
 import { Favorite, Download } from '@mui/icons-material'
 import { downloadImage } from '../utils/downloadImage'
 import { useToast } from '../contexts/ToastContext'
@@ -26,10 +27,17 @@ export const ColoringPageCard = ({
 }) => {
   const imageUrl = page.imageUrl || page.thumbnailUrl
   const { showToast } = useToast()
+  const [downloadAnchor, setDownloadAnchor] = useState(null)
 
-  const handleDownload = () => {
-    downloadImage(imageUrl, page.title)
-    showToast('Download complete')
+  const handleDownloadClick = (e) => {
+    setDownloadAnchor(e.currentTarget)
+  }
+  const handleDownloadClose = () => setDownloadAnchor(null)
+
+  const handleDownload = async (format) => {
+    handleDownloadClose()
+    await downloadImage(imageUrl, page.title, format)
+    showToast(`Downloaded as ${format.toUpperCase()}`)
   }
 
   const handleDragStart = (e) => {
@@ -67,11 +75,21 @@ export const ColoringPageCard = ({
         sx={{ objectFit: 'cover' }}
       />
       <IconButton
-        onClick={handleDownload}
+        onClick={handleDownloadClick}
         sx={{ ...iconButtonSx, left: 8 }}
       >
         <Download />
       </IconButton>
+      <Menu
+        anchorEl={downloadAnchor}
+        open={Boolean(downloadAnchor)}
+        onClose={handleDownloadClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+      >
+        <MenuItem onClick={() => handleDownload('png')}>Download as PNG</MenuItem>
+        <MenuItem onClick={() => handleDownload('pdf')}>Download as PDF</MenuItem>
+      </Menu>
       <IconButton
         onClick={() => onToggleFavorite(page.id)}
         disabled={isFavoritePending}

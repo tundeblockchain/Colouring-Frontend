@@ -19,7 +19,6 @@ import {
   Slider,
   Alert,
   CircularProgress,
-  Grid,
 } from '@mui/material'
 import {
   ExpandMore,
@@ -48,7 +47,7 @@ export const CreateColoringPage = () => {
 
   const initialTab = tabTypes[type] || 'text'
   const [activeTab, setActiveTab] = useState(
-    initialTab === 'wordArt' || initialTab === 'drawing' ? 'text' : initialTab
+    initialTab === 'drawing' ? 'text' : initialTab
   )
   const [prompt, setPrompt] = useState('alien mother ship, crashing at beach.')
   const [autoImprove, setAutoImprove] = useState(true)
@@ -58,11 +57,30 @@ export const CreateColoringPage = () => {
   const [autoUpscale, setAutoUpscale] = useState(false)
   const [generatedPreviews, setGeneratedPreviews] = useState([])
   const [imageAspectRatio, setImageAspectRatio] = useState(null)
+  const [photoFile, setPhotoFile] = useState(null)
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState(null)
 
   const handleTabChange = (event, newValue) => {
+    if (photoPreviewUrl) {
+      URL.revokeObjectURL(photoPreviewUrl)
+      setPhotoPreviewUrl(null)
+    }
+    setPhotoFile(null)
     setActiveTab(newValue)
     const tabPath = Object.keys(tabTypes).find(key => tabTypes[key] === newValue)
     navigate(`/create/${tabPath}`)
+  }
+
+  const handlePhotoFileChange = (e) => {
+    const file = e.target.files?.[0]
+    if (photoPreviewUrl) {
+      URL.revokeObjectURL(photoPreviewUrl)
+      setPhotoPreviewUrl(null)
+    }
+    setPhotoFile(file || null)
+    if (file) {
+      setPhotoPreviewUrl(URL.createObjectURL(file))
+    }
   }
 
   const handleGenerate = async () => {
@@ -76,7 +94,12 @@ export const CreateColoringPage = () => {
       return
     }
 
-    if (!prompt.trim()) {
+    if (activeTab === 'photo') {
+      if (!photoFile) {
+        alert('Please upload a photo')
+        return
+      }
+    } else if (!prompt.trim()) {
       alert('Please enter a prompt')
       return
     }
@@ -85,12 +108,13 @@ export const CreateColoringPage = () => {
       const result = await generateMutation.mutateAsync({
         userId: user.uid,
         prompt: prompt.trim(),
-        title: prompt.trim(),
+        title: prompt.trim() || (activeTab === 'photo' ? 'Photo coloring page' : ''),
         type: activeTab,
         quality,
         dimensions,
         folderId: null,
         numImages: count,
+        ...(activeTab === 'photo' && photoFile ? { imageFile: photoFile } : {}),
       })
 
       if (result.success) {
@@ -98,6 +122,11 @@ export const CreateColoringPage = () => {
         if (pages?.length) {
           setGeneratedPreviews(Array.isArray(pages) ? pages : [pages])
           setImageAspectRatio(null)
+          if (activeTab === 'photo' && photoPreviewUrl) {
+            URL.revokeObjectURL(photoPreviewUrl)
+            setPhotoPreviewUrl(null)
+          }
+          setPhotoFile(null)
         }
       }
       if (!result.success) {
@@ -146,17 +175,21 @@ export const CreateColoringPage = () => {
             sx={{
               width: '100%',
               maxWidth: hasPreviews ? 560 : 280,
-              maxHeight: '70vh',
-              aspectRatio: !hasPreviews && imageAspectRatio != null
-                ? imageAspectRatio
-                : (aspectRatioMap[dimensions] || '2/3'),
+              ...(hasPreviews
+                ? { flex: 1, minHeight: 0, minWidth: 0 }
+                : {
+                    maxHeight: '70vh',
+                    aspectRatio: imageAspectRatio != null
+                      ? imageAspectRatio
+                      : (aspectRatioMap[dimensions] || '2/3'),
+                  }),
               backgroundColor: '#000000',
               borderRadius: 2,
               border: '2px dashed rgba(255,255,255,0.2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              overflow: 'auto',
+              overflow: 'hidden',
               position: 'relative',
             }}
           >
@@ -168,11 +201,39 @@ export const CreateColoringPage = () => {
                 </Typography>
               </Box>
             ) : hasPreviews ? (
-              <Grid container spacing={1} sx={{ p: 1, width: '100%' }}>
+              <Box
+                sx={{
+                  display: 'grid',
+                  width: '100%',
+                  height: '100%',
+                  gap: 1,
+                  p: 1,
+                  boxSizing: 'border-box',
+                  ...(generatedPreviews.length === 1
+                    ? { gridTemplateColumns: '1fr', gridTemplateRows: '1fr' }
+                    : generatedPreviews.length === 2
+                      ? { gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr' }
+                      : generatedPreviews.length <= 4
+                        ? { gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr' }
+                        : { gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr 1fr' }),
+                }}
+              >
                 {generatedPreviews.map((page, index) => {
                   const url = page.imageUrl || page.thumbnailUrl
                   return (
-                    <Grid item xs={6} sm={4} md={generatedPreviews.length === 1 ? 12 : 6} key={page.id || index}>
+                    <Box
+                      key={page.id || index}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden',
+                        minHeight: 0,
+                        minWidth: 0,
+                        borderRadius: 1,
+                        border: '1px solid rgba(255,255,255,0.1)',
+                      }}
+                    >
                       <Box
                         component="img"
                         src={url}
@@ -186,17 +247,18 @@ export const CreateColoringPage = () => {
                           }
                         }}
                         sx={{
-                          width: '100%',
-                          aspectRatio: aspectRatioMap[dimensions] || '2/3',
-                          objectFit: 'cover',
+                          maxWidth: '100%',
+                          maxHeight: '100%',
+                          width: 'auto',
+                          height: 'auto',
+                          objectFit: 'contain',
                           borderRadius: 1,
-                          border: '1px solid rgba(255,255,255,0.1)',
                         }}
                       />
-                    </Grid>
+                    </Box>
                   )
                 })}
-              </Grid>
+              </Box>
             ) : (
               <Typography
                 variant="body2"
@@ -215,9 +277,9 @@ export const CreateColoringPage = () => {
               <Button
                 size="small"
                 variant="contained"
-                fullWidth
                 onClick={() => navigate('/gallery')}
                 sx={{
+                  flex: 1,
                   backgroundColor: 'primary.main',
                   '&:hover': { backgroundColor: 'primary.dark' },
                 }}
@@ -231,7 +293,11 @@ export const CreateColoringPage = () => {
                   setGeneratedPreviews([])
                   setImageAspectRatio(null)
                 }}
-                sx={{ borderColor: 'rgba(255,255,255,0.5)', color: 'rgba(255,255,255,0.9)' }}
+                sx={{
+                  flex: 1,
+                  borderColor: 'rgba(255,255,255,0.5)',
+                  color: 'rgba(255,255,255,0.9)',
+                }}
               >
                 Create another
               </Button>
@@ -242,28 +308,90 @@ export const CreateColoringPage = () => {
         <Box sx={{ width: 500, backgroundColor: 'background.paper', borderRadius: 2, padding: 3, overflowY: 'auto' }}>
           <Tabs value={activeTab} onChange={handleTabChange} sx={{ marginBottom: 3 }}>
             <Tab label="Text Prompt" value="text" />
-            {/* Word Art and Drawing tabs hidden for now */}
+            <Tab label="Word Art" value="wordArt" />
             <Tab label="Photo" value="photo" />
           </Tabs>
 
           <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, marginBottom: 1 }}>
-            Create a coloring page from a text prompt
+            {activeTab === 'wordArt'
+              ? 'Create a coloring page with words, names, and numbers'
+              : activeTab === 'photo'
+                ? 'Turn your photo into a coloring page'
+                : 'Create a coloring page from a text prompt'}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ marginBottom: 3 }}>
-            Describe your coloring page in natural language. Don't stress about your prompt, our AI will automatically improve it for you.
+            {activeTab === 'wordArt'
+              ? 'Enter words, a name, or numbers to turn them into a coloring page.'
+              : activeTab === 'photo'
+                ? 'Upload a photo and we\'ll turn it into a coloring page.'
+                : 'Describe your coloring page in natural language. Don\'t stress about your prompt, our AI will automatically improve it for you.'}
           </Typography>
 
+          {activeTab === 'photo' && (
+            <Box sx={{ marginBottom: 3 }}>
+              <Typography variant="body2" sx={{ marginBottom: 1, fontWeight: 500 }}>
+                Upload a photo
+              </Typography>
+              <Button
+                variant="outlined"
+                component="label"
+                fullWidth
+                sx={{ mb: 2, py: 2, borderStyle: 'dashed' }}
+              >
+                {photoFile ? photoFile.name : 'Choose image (JPG, PNG, etc.)'}
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  onChange={handlePhotoFileChange}
+                />
+              </Button>
+              {photoPreviewUrl && (
+                <Box
+                  sx={{
+                    width: '100%',
+                    maxHeight: 200,
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    mb: 2,
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src={photoPreviewUrl}
+                    alt="Preview"
+                    sx={{ width: '100%', height: 'auto', maxHeight: 200, objectFit: 'contain', display: 'block' }}
+                  />
+                </Box>
+              )}
+              <Typography variant="body2" sx={{ marginBottom: 1, fontWeight: 500, color: 'text.secondary' }}>
+                Style hint (optional)
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="e.g. cartoon style, simple lines"
+                sx={{ marginBottom: 1 }}
+              />
+            </Box>
+          )}
+
+          {activeTab !== 'photo' && (
           <Box sx={{ marginBottom: 3 }}>
             <Typography variant="body2" sx={{ marginBottom: 1, fontWeight: 500 }}>
-              Describe your coloring page.
+              {activeTab === 'wordArt' ? 'Words, name, or numbers.' : 'Describe your coloring page.'}
             </Typography>
             <TextField
               fullWidth
               multiline
-              rows={4}
+              rows={activeTab === 'wordArt' ? 2 : 4}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="alien mother ship, crashing at beach."
+              placeholder={activeTab === 'wordArt' ? 'e.g. Happy Birthday, Emma, 2024' : 'alien mother ship, crashing at beach.'}
               sx={{ marginBottom: 1 }}
             />
             <Box sx={{ display: 'flex', gap: 1, marginBottom: 1 }}>
@@ -293,7 +421,9 @@ export const CreateColoringPage = () => {
               label="Auto-improve"
             />
           </Box>
+          )}
 
+          {activeTab !== 'photo' && (
           <Accordion>
             <AccordionSummary expandIcon={<ExpandMore />}>
               <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -318,8 +448,9 @@ export const CreateColoringPage = () => {
               </Box>
             </AccordionDetails>
           </Accordion>
+          )}
 
-          <Accordion defaultExpanded sx={{ marginTop: 2 }}>
+          <Accordion defaultExpanded sx={{ marginTop: activeTab === 'photo' ? 0 : 2 }}>
             <AccordionSummary expandIcon={<ExpandMore />}>
               <Typography variant="body2" sx={{ fontWeight: 500 }}>
                 Settings
@@ -420,7 +551,10 @@ export const CreateColoringPage = () => {
             fullWidth
             variant="contained"
             onClick={handleGenerate}
-            disabled={generateMutation.isPending || !prompt.trim()}
+            disabled={
+              generateMutation.isPending ||
+              (activeTab === 'photo' ? !photoFile : !prompt.trim())
+            }
             sx={{
               marginTop: 3,
               backgroundColor: 'primary.main',
