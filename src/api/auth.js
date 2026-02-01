@@ -5,6 +5,9 @@ import {
   onAuthStateChanged,
   signInWithPopup,
   GoogleAuthProvider,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup,
   updatePassword as firebaseUpdatePassword,
   deleteUser as firebaseDeleteUser,
 } from 'firebase/auth'
@@ -117,21 +120,66 @@ export const updatePassword = async (newPassword) => {
 }
 
 /**
- * Delete the current Firebase Auth user. Call after backend has deleted user data.
- * This signs the user out.
+ * Re-authenticate the current user (required before deleteUser if they signed in a while ago).
+ * For email/password users pass { password }. For Google (and other OAuth) users, a popup is used.
+ * @param {{ password?: string }} options - password required for email/password provider
  */
-export const deleteAuthUser = async () => {
+export const reauthenticateCurrentUser = async (options = {}) => {
+  const currentUser = auth.currentUser
+  if (!currentUser) {
+    return { success: false, error: 'You must be logged in.' }
+  }
+  const providerData = currentUser.providerData || []
+  const hasPassword = providerData.some((p) => p.providerId === 'password')
+  const hasGoogle = providerData.some((p) => p.providerId === 'google.com')
+  try {
+    if (hasPassword && options.password) {
+      const credential = EmailAuthProvider.credential(currentUser.email, options.password)
+      await reauthenticateWithCredential(currentUser, credential)
+      return { success: true }
+    }
+    if (hasGoogle) {
+      await reauthenticateWithPopup(currentUser, googleProvider)
+      return { success: true }
+    }
+    if (hasPassword) {
+      return { success: false, error: 'Please enter your password to confirm.' }
+    }
+    return { success: false, error: 'Re-authentication is not supported for this sign-in method.' }
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * Delete the current Firebase Auth user. Call after backend has deleted user data.
+ * Re-authenticates first if needed (pass { password } for email/password users).
+ * This signs the user out.
+ * @param {{ password?: string }} options - password required for email/password users to re-auth
+ */
+export const deleteAuthUser = async (options = {}) => {
   const currentUser = auth.currentUser
   if (!currentUser) {
     return { success: false, error: 'You must be logged in to delete your account.' }
   }
   try {
+    const reauth = await reauthenticateCurrentUser(options)
+    if (!reauth.success) {
+      return reauth
+    }
     await firebaseDeleteUser(currentUser)
     return { success: true }
   } catch (error) {
+    const msg = error.message || ''
+    const needsReauth = msg.includes('requires-recent-login') || msg.includes('auth/requires-recent-login')
     return {
       success: false,
-      error: error.message,
+      error: needsReauth
+        ? 'Please sign in again to confirm. Enter your password below, or we\'ll use the sign-in popup.'
+        : error.message,
     }
   }
 }

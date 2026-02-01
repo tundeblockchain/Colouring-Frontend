@@ -13,6 +13,7 @@ export const useAuth = () => {
           email: firebaseUser.email,
           displayName: firebaseUser.displayName,
           photoURL: firebaseUser.photoURL,
+          providerData: firebaseUser.providerData || [],
         })
       } else {
         setUser(null)

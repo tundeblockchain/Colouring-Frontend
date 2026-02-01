@@ -62,7 +62,9 @@ export const Profile = () => {
   const [cancelLoading, setCancelLoading] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deletePassword, setDeletePassword] = useState('')
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const isEmailProvider = user?.providerData?.some((p) => p.providerId === 'password')
 
   const plan = (userProfile?.plan || 'free').toLowerCase()
   const isPaidPlan = PAID_PLANS.includes(plan)
@@ -100,10 +102,11 @@ export const Profile = () => {
       showToast(backendResult.error || 'Failed to delete account.', 'error')
       return
     }
-    const authResult = await deleteAuthUser()
+    const authResult = await deleteAuthUser(isEmailProvider ? { password: deletePassword } : {})
     setDeleteLoading(false)
     setDeleteDialogOpen(false)
     setDeleteConfirmText('')
+    setDeletePassword('')
     if (authResult.success) {
       showToast('Account deleted successfully.')
       navigate('/login', { replace: true })
@@ -385,7 +388,7 @@ export const Profile = () => {
 
           <Dialog
             open={deleteDialogOpen}
-            onClose={() => !deleteLoading && (setDeleteDialogOpen(false), setDeleteConfirmText(''))}
+            onClose={() => !deleteLoading && (setDeleteDialogOpen(false), setDeleteConfirmText(''), setDeletePassword(''))}
           >
             <DialogTitle>Delete account?</DialogTitle>
             <DialogContent>
@@ -402,16 +405,28 @@ export const Profile = () => {
                 disabled={deleteLoading}
                 sx={{ mt: 1 }}
               />
+              {isEmailProvider && (
+                <TextField
+                  fullWidth
+                  type="password"
+                  label="Your password"
+                  placeholder="Enter your password to confirm"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  disabled={deleteLoading}
+                  sx={{ mt: 2 }}
+                />
+              )}
             </DialogContent>
             <DialogActions>
-              <Button onClick={() => { setDeleteDialogOpen(false); setDeleteConfirmText('') }} disabled={deleteLoading}>
+              <Button onClick={() => { setDeleteDialogOpen(false); setDeleteConfirmText(''); setDeletePassword('') }} disabled={deleteLoading}>
                 Keep account
               </Button>
               <Button
                 color="error"
                 variant="contained"
                 onClick={handleDeleteAccount}
-                disabled={deleteLoading || deleteConfirmText !== 'DELETE'}
+                disabled={deleteLoading || deleteConfirmText !== 'DELETE' || (isEmailProvider && !deletePassword.trim())}
               >
                 {deleteLoading ? 'Deleting…' : 'Delete account'}
               </Button>
