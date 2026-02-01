@@ -76,6 +76,14 @@ export const Profile = () => {
         return next
       }, { replace: true })
     }
+    if (searchParams.get('credits') === 'success') {
+      showToast('Credits added successfully.')
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('credits')
+        return next
+      }, { replace: true })
+    }
   }, [searchParams, setSearchParams, showToast])
 
   const getInitials = (email) => {

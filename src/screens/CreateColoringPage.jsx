@@ -19,6 +19,7 @@ import {
   Slider,
   Alert,
   CircularProgress,
+  Grid,
 } from '@mui/material'
 import {
   ExpandMore,
@@ -55,7 +56,7 @@ export const CreateColoringPage = () => {
   const [dimensions, setDimensions] = useState('2:3')
   const [numImages, setNumImages] = useState(1)
   const [autoUpscale, setAutoUpscale] = useState(false)
-  const [generatedPreviewUrl, setGeneratedPreviewUrl] = useState(null)
+  const [generatedPreviews, setGeneratedPreviews] = useState([])
   const [imageAspectRatio, setImageAspectRatio] = useState(null)
 
   const handleTabChange = (event, newValue) => {
@@ -69,8 +70,9 @@ export const CreateColoringPage = () => {
       return
     }
 
-    if (userProfile.credits < 1) {
-      alert('Insufficient credits. Please upgrade your plan.')
+    const count = Math.min(6, Math.max(1, numImages))
+    if (userProfile.credits < count) {
+      alert(`Insufficient credits. You need ${count} credit(s). Please upgrade your plan.`)
       return
     }
 
@@ -80,7 +82,6 @@ export const CreateColoringPage = () => {
     }
 
     try {
-      // Generate coloring page (backend automatically deducts credits)
       const result = await generateMutation.mutateAsync({
         userId: user.uid,
         prompt: prompt.trim(),
@@ -88,13 +89,14 @@ export const CreateColoringPage = () => {
         type: activeTab,
         quality,
         dimensions,
-        folderId: null, // Can be updated later to support folder selection
+        folderId: null,
+        numImages: count,
       })
 
       if (result.success) {
-        const imageUrl = result.data?.imageUrl || result.data?.thumbnailUrl
-        if (imageUrl) {
-          setGeneratedPreviewUrl(imageUrl)
+        const pages = result.data?.coloringPages ?? (result.data?.id ? [result.data] : [])
+        if (pages?.length) {
+          setGeneratedPreviews(Array.isArray(pages) ? pages : [pages])
           setImageAspectRatio(null)
         }
       }
@@ -121,6 +123,7 @@ export const CreateColoringPage = () => {
   const canGenerateMultiple = !isFreePlan
 
   const aspectRatioMap = { '1:1': '1', '2:3': '2/3', '3:2': '3/2' }
+  const hasPreviews = generatedPreviews.length > 0
 
   return (
     <MainLayout>
@@ -142,9 +145,9 @@ export const CreateColoringPage = () => {
           <Box
             sx={{
               width: '100%',
-              maxWidth: 280,
+              maxWidth: hasPreviews ? 560 : 280,
               maxHeight: '70vh',
-              aspectRatio: generatedPreviewUrl && imageAspectRatio != null
+              aspectRatio: !hasPreviews && imageAspectRatio != null
                 ? imageAspectRatio
                 : (aspectRatioMap[dimensions] || '2/3'),
               backgroundColor: '#000000',
@@ -153,7 +156,7 @@ export const CreateColoringPage = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              overflow: 'hidden',
+              overflow: 'auto',
               position: 'relative',
             }}
           >
@@ -161,26 +164,39 @@ export const CreateColoringPage = () => {
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                 <CircularProgress sx={{ color: 'primary.main' }} />
                 <Typography variant="body2" color="text.secondary">
-                  Creating your coloring page...
+                  Creating {numImages > 1 ? `${numImages} coloring pages` : 'your coloring page'}...
                 </Typography>
               </Box>
-            ) : generatedPreviewUrl ? (
-              <Box
-                component="img"
-                src={generatedPreviewUrl}
-                alt="Generated coloring page"
-                onLoad={(e) => {
-                  const { naturalWidth, naturalHeight } = e.target
-                  if (naturalWidth && naturalHeight) {
-                    setImageAspectRatio(`${naturalWidth} / ${naturalHeight}`)
-                  }
-                }}
-                sx={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'contain',
-                }}
-              />
+            ) : hasPreviews ? (
+              <Grid container spacing={1} sx={{ p: 1, width: '100%' }}>
+                {generatedPreviews.map((page, index) => {
+                  const url = page.imageUrl || page.thumbnailUrl
+                  return (
+                    <Grid item xs={6} sm={4} md={generatedPreviews.length === 1 ? 12 : 6} key={page.id || index}>
+                      <Box
+                        component="img"
+                        src={url}
+                        alt={page.title || `Generated ${index + 1}`}
+                        onLoad={(e) => {
+                          if (generatedPreviews.length === 1 && imageAspectRatio == null) {
+                            const { naturalWidth, naturalHeight } = e.target
+                            if (naturalWidth && naturalHeight) {
+                              setImageAspectRatio(`${naturalWidth} / ${naturalHeight}`)
+                            }
+                          }
+                        }}
+                        sx={{
+                          width: '100%',
+                          aspectRatio: aspectRatioMap[dimensions] || '2/3',
+                          objectFit: 'cover',
+                          borderRadius: 1,
+                          border: '1px solid rgba(255,255,255,0.1)',
+                        }}
+                      />
+                    </Grid>
+                  )
+                })}
+              </Grid>
             ) : (
               <Typography
                 variant="body2"
@@ -190,12 +206,12 @@ export const CreateColoringPage = () => {
                   px: 2,
                 }}
               >
-                Preview • Your coloring page will appear here
+                Preview • Your coloring page{numImages > 1 ? 's' : ''} will appear here
               </Typography>
             )}
           </Box>
-          {generatedPreviewUrl && (
-            <Box sx={{ display: 'flex', gap: 1, width: '100%', maxWidth: 280 }}>
+          {hasPreviews && (
+            <Box sx={{ display: 'flex', gap: 1, width: '100%', maxWidth: 560 }}>
               <Button
                 size="small"
                 variant="contained"
@@ -212,7 +228,7 @@ export const CreateColoringPage = () => {
                 size="small"
                 variant="outlined"
                 onClick={() => {
-                  setGeneratedPreviewUrl(null)
+                  setGeneratedPreviews([])
                   setImageAspectRatio(null)
                 }}
                 sx={{ borderColor: 'rgba(255,255,255,0.5)', color: 'rgba(255,255,255,0.9)' }}
@@ -356,8 +372,8 @@ export const CreateColoringPage = () => {
                   <TextField
                     type="number"
                     value={numImages}
-                    onChange={(e) => setNumImages(parseInt(e.target.value) || 1)}
-                    inputProps={{ min: 1, max: canGenerateMultiple ? 4 : 1 }}
+                    onChange={(e) => setNumImages(Math.min(6, Math.max(1, parseInt(e.target.value, 10) || 1)))}
+                    inputProps={{ min: 1, max: canGenerateMultiple ? 6 : 1 }}
                     sx={{ width: 80 }}
                     size="small"
                     disabled={!canGenerateMultiple}
@@ -366,7 +382,7 @@ export const CreateColoringPage = () => {
                     value={numImages}
                     onChange={(e, value) => setNumImages(value)}
                     min={1}
-                    max={canGenerateMultiple ? 4 : 1}
+                    max={canGenerateMultiple ? 6 : 1}
                     step={1}
                     sx={{ flex: 1 }}
                     disabled={!canGenerateMultiple}

@@ -368,7 +368,7 @@ export const Header = ({ user }) => {
               size="small"
               onClick={() => {
                 setCreditsPopoverOpen(false)
-                navigate('/choose-plan')
+                navigate('/add-credits')
               }}
               sx={{ borderColor: 'divider', color: 'text.primary' }}
             >

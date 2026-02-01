@@ -101,7 +101,8 @@ export const ChoosePlan = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { data: userProfile } = useUser(user?.uid)
-  const { data: apiPlans = [], isLoading: plansLoading } = useSubscriptionPlans()
+  const { data: plansData, isLoading: plansLoading } = useSubscriptionPlans()
+  const apiPlans = plansData?.plans ?? []
   const { showToast } = useToast()
   const [interval, setInterval] = useState('month')
   const [selectedPlanId, setSelectedPlanId] = useState(null)

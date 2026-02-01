@@ -2,10 +2,14 @@ import { ColoringPage } from '../models/coloringPage'
 import { apiRequest } from './apiClient'
 
 /**
- * Generate a coloring page
+ * Generate one or more coloring pages (up to 6).
+ * All generated pages can be assigned to the same folder via folderId.
+ *
+ * @param {object} params - { userId, prompt, title, type, style, quality, dimensions, folderId, numImages (1-6) }
+ * @returns {{ success: boolean, data?: { coloringPages: ColoringPage[], creditsRemaining?: number }, error?: string }}
  */
 export const generateColoringPage = async (params) => {
-  const { userId, prompt, title, type, style, quality, dimensions, folderId } = params
+  const { userId, prompt, title, type, style, quality, dimensions, folderId, numImages = 1 } = params
 
   if (!prompt || !prompt.trim()) {
     return {
@@ -14,6 +18,7 @@ export const generateColoringPage = async (params) => {
     }
   }
 
+  const count = Math.min(6, Math.max(1, parseInt(numImages, 10) || 1))
   const qualityValue = quality || style || 'fast'
 
   const requestBody = {
@@ -23,6 +28,7 @@ export const generateColoringPage = async (params) => {
     dimensions: dimensions || '2:3',
     quality: qualityValue,
     style: qualityValue,
+    numImages: count,
   }
 
   if (title) requestBody.title = title
@@ -35,10 +41,17 @@ export const generateColoringPage = async (params) => {
   })
 
   if (result.success) {
+    const rawPages = result.data?.coloringPages ?? result.data?.pages ?? (result.data?.id ? [result.data] : [])
+    const coloringPages = Array.isArray(rawPages)
+      ? rawPages.map((p) => new ColoringPage(p))
+      : [new ColoringPage(result.data)]
     return {
       success: true,
-      data: new ColoringPage(result.data),
-      creditsRemaining: result.data.creditsRemaining,
+      data: {
+        coloringPages,
+        creditsRemaining: result.data?.creditsRemaining,
+      },
+      creditsRemaining: result.data?.creditsRemaining,
     }
   }
 

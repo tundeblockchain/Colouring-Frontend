@@ -13,6 +13,7 @@ import { Profile } from './screens/Profile'
 import { Folders } from './screens/Folders'
 import { FolderView } from './screens/FolderView'
 import { ChoosePlan } from './screens/ChoosePlan'
+import { AddOneTimeCredits } from './screens/AddOneTimeCredits'
 
 // Components
 import { AuthHandler } from './components/AuthHandler'
@@ -116,6 +117,14 @@ function App() {
         element={
           <ProtectedRoute>
             <ChoosePlan />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/add-credits"
+        element={
+          <ProtectedRoute>
+            <AddOneTimeCredits />
           </ProtectedRoute>
         }
       />

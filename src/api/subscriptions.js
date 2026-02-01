@@ -1,19 +1,27 @@
 import { apiRequest } from './apiClient'
 
 /**
- * Fetch subscription plans with prices from Stripe (via backend).
- * Backend should return plans with Stripe price data (amount in cents, currency).
+ * Fetch subscription plans and credit packs with prices from Stripe (via backend).
+ * Backend should return plans and creditPacks with Stripe price data (amount in cents, currency).
  *
- * Response shape: { plans: [ { id, name, tagline, credits, moreFeatures (string[]), popular, prices: { month: { amount, currency }, year: { amount, currency } } } ] }
+ * Response shape:
+ * - plans: [ { id, name, tagline, credits, moreFeatures, popular, prices: { month, year } } ]
+ * - creditPacks: [ { id: 'starter'|'creator'|'pro', name?, description?, credits, price: { amount, currency }, originalPrice? } ]
  */
 export const getSubscriptionPlans = async () => {
   const result = await apiRequest('/subscriptions/plans', { method: 'GET' })
-  if (result.success && Array.isArray(result.data?.plans)) {
-    return { success: true, plans: result.data.plans }
+  if (result.success && result.data) {
+    const rawPacks = result.data.creditPacks ?? result.data.credit_packs
+    return {
+      success: true,
+      plans: Array.isArray(result.data.plans) ? result.data.plans : [],
+      creditPacks: Array.isArray(rawPacks) ? rawPacks : [],
+    }
   }
   return {
     success: false,
     plans: [],
+    creditPacks: [],
     error: result.data?.error || result.error || 'Failed to fetch plans',
   }
 }
@@ -42,6 +50,37 @@ export const createCheckoutSession = async (userId, options) => {
       interval: interval || 'month',
       successUrl: `${window.location.origin}/profile?subscription=success`,
       cancelUrl: `${window.location.origin}/choose-plan`,
+    },
+  })
+  if (result.success && result.data?.url) {
+    return { success: true, url: result.data.url }
+  }
+  return {
+    success: false,
+    error: result.data?.error || result.error || 'Failed to create checkout session',
+  }
+}
+
+/**
+ * Create a Stripe Checkout session for a one-time credit pack purchase.
+ * Backend should create a one-time payment session and add credits on success.
+ *
+ * @param {string} userId - Current user id
+ * @param {{ packId: string }} options - packId: starter | creator | pro
+ * @returns {{ success: boolean, url?: string, error?: string }}
+ */
+export const createCreditPackCheckout = async (userId, options) => {
+  const { packId } = options
+  if (!userId || !packId) {
+    return { success: false, error: 'User and pack are required.' }
+  }
+  const result = await apiRequest('/subscriptions/credit-pack-checkout', {
+    method: 'POST',
+    userId,
+    body: {
+      packId: packId.toLowerCase(),
+      successUrl: `${window.location.origin}/profile?credits=success`,
+      cancelUrl: `${window.location.origin}/add-credits`,
     },
   })
   if (result.success && result.data?.url) {
