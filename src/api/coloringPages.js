@@ -6,11 +6,11 @@ import { apiRequest } from './apiClient'
  * All generated pages can be assigned to the same folder via folderId.
  * For type 'photo', pass imageFile (File) to upload an image; the backend generates based on it.
  *
- * @param {object} params - { userId, prompt, title, type, style, quality, dimensions, folderId, numImages (1-6), imageFile?: File }
+ * @param {object} params - { userId, prompt, title, type, style, quality, dimensions, folderId, numImages (1-6), imageFile?: File, wordArtStyle?: string }
  * @returns {{ success: boolean, data?: { coloringPages: ColoringPage[], creditsRemaining?: number }, error?: string }}
  */
 export const generateColoringPage = async (params) => {
-  const { userId, prompt, title, type, style, quality, dimensions, folderId, numImages = 1, imageFile } = params
+  const { userId, prompt, title, type, style, quality, dimensions, folderId, numImages = 1, imageFile, wordArtStyle } = params
 
   const isPhoto = type === 'photo'
   const hasPrompt = prompt != null && String(prompt).trim().length > 0
@@ -55,6 +55,7 @@ export const generateColoringPage = async (params) => {
     }
     if (title) body.title = title
     if (folderId) body.folderId = folderId
+    if (wordArtStyle) body.wordArtStyle = wordArtStyle
   }
 
   const result = await apiRequest('/coloring-pages/generate', {

@@ -49,7 +49,7 @@ export const CreateColoringPage = () => {
   const [activeTab, setActiveTab] = useState(
     initialTab === 'drawing' ? 'text' : initialTab
   )
-  const [prompt, setPrompt] = useState('alien mother ship, crashing at beach.')
+  const [prompt, setPrompt] = useState('fancy anime footballer')
   const [autoImprove, setAutoImprove] = useState(true)
   const [quality, setQuality] = useState('fast')
   const [dimensions, setDimensions] = useState('2:3')
@@ -59,6 +59,7 @@ export const CreateColoringPage = () => {
   const [imageAspectRatio, setImageAspectRatio] = useState(null)
   const [photoFile, setPhotoFile] = useState(null)
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState(null)
+  const [wordArtStyle, setWordArtStyle] = useState('bubble')
 
   const handleTabChange = (event, newValue) => {
     if (photoPreviewUrl) {
@@ -115,6 +116,7 @@ export const CreateColoringPage = () => {
         folderId: null,
         numImages: count,
         ...(activeTab === 'photo' && photoFile ? { imageFile: photoFile } : {}),
+        ...(activeTab === 'wordArt' ? { wordArtStyle } : {}),
       })
 
       if (result.success) {
@@ -377,6 +379,32 @@ export const CreateColoringPage = () => {
                 placeholder="e.g. cartoon style, simple lines"
                 sx={{ marginBottom: 1 }}
               />
+            </Box>
+          )}
+
+          {activeTab === 'wordArt' && (
+            <Box sx={{ marginBottom: 2 }}>
+              <Typography variant="body2" sx={{ marginBottom: 1, fontWeight: 500 }}>
+                Style
+              </Typography>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                value={wordArtStyle}
+                onChange={(e) => setWordArtStyle(e.target.value)}
+                SelectProps={{ native: true }}
+                sx={{ marginBottom: 2 }}
+              >
+                <option value="bubble">Bubble letters</option>
+                <option value="graffiti">Graffiti</option>
+                <option value="cursive">Cursive</option>
+                <option value="block">Block letters</option>
+                <option value="3d">3D</option>
+                <option value="stencil">Stencil</option>
+                <option value="comic">Comic</option>
+                <option value="fancy">Fancy / decorative</option>
+              </TextField>
             </Box>
           )}
 

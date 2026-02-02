@@ -4,7 +4,6 @@ import {
   Typography,
   Card,
   CardContent,
-  CardMedia,
   Button,
   Grid,
 } from '@mui/material'
@@ -16,21 +15,21 @@ const featureCards = [
     id: 1,
     title: 'Text prompts',
     description: 'Create coloring pages with text prompts',
-    image: 'https://via.placeholder.com/400x300/64B5F6/ffffff?text=Text+Prompts',
+    image: '/text-prompts.png',
     path: '/create/text',
   },
   {
     id: 2,
     title: 'Word Art',
     description: 'Create coloring pages with words, names, and numbers!',
-    image: 'https://via.placeholder.com/400x300/64B5F6/ffffff?text=Word+Art',
+    image: '/word-art.png',
     path: '/create/word-art',
   },
   {
     id: 4,
     title: 'Photos',
     description: 'Turn your photos into coloring pages!',
-    image: 'https://via.placeholder.com/400x300/64B5F6/ffffff?text=Photos',
+    image: '/photos.png',
     path: '/create/photo',
   },
 ]
@@ -75,13 +74,34 @@ export const Dashboard = () => {
                   },
                 }}
               >
-                <CardMedia
-                  component="img"
-                  height="200"
-                  image={card.image}
-                  alt={card.title}
-                  sx={{ objectFit: 'cover' }}
-                />
+                <Box
+                  sx={{
+                    width: '100%',
+                    height: 0,
+                    paddingBottom: '66.67%', // 2/3 = 3:2 aspect ratio
+                    position: 'relative',
+                    overflow: 'hidden',
+                    backgroundColor: 'action.hover',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src={card.image}
+                    alt={card.title}
+                    loading="lazy"
+                    sx={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      display: 'block',
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'contain',
+                      objectPosition: 'center',
+                    }}
+                  />
+                </Box>
                 <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', pt: 1.5, pb: 2, '&:last-child': { pb: 2 } }}>
                   <Typography variant="h6" component="h2" gutterBottom sx={{ fontWeight: 600 }}>
                     {card.title}

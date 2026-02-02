@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
+import { useSearchParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import {
   Box,
   TextField,
@@ -113,7 +113,18 @@ export const Header = ({ user }) => {
         zIndex: 999,
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      <Box
+        component={Link}
+        to="/dashboard"
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          textDecoration: 'none',
+          color: 'inherit',
+          '&:hover': { opacity: 0.9 },
+        }}
+      >
         <Box
           component="img"
           src="/logo.png"
