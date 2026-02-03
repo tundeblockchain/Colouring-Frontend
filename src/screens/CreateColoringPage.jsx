@@ -29,7 +29,8 @@ import { MainLayout } from '../components/Layout/MainLayout'
 import { useAuth } from '../hooks/useAuth'
 import { useUser } from '../hooks/useUser'
 import { useGenerateColoringPage } from '../hooks/useColoringPages'
-import { useDeductCredits } from '../hooks/useUser'
+import { pollColoringPageUntilComplete } from '../api/coloringPages'
+import { ColoringPage } from '../models/coloringPage'
 
 const tabTypes = {
   text: 'text',
@@ -121,14 +122,35 @@ export const CreateColoringPage = () => {
 
       if (result.success) {
         const pages = result.data?.coloringPages ?? (result.data?.id ? [result.data] : [])
-        if (pages?.length) {
-          setGeneratedPreviews(Array.isArray(pages) ? pages : [pages])
+        const previewPages = Array.isArray(pages) ? pages : [pages]
+        if (previewPages.length) {
+          setGeneratedPreviews(previewPages)
           setImageAspectRatio(null)
           if (activeTab === 'photo' && photoPreviewUrl) {
             URL.revokeObjectURL(photoPreviewUrl)
             setPhotoPreviewUrl(null)
           }
           setPhotoFile(null)
+          // Poll each page until completed or failed (async generation)
+          previewPages.forEach((page) => {
+            if (!page.id) return
+            pollColoringPageUntilComplete(user.uid, page.id)
+              .then((completedPage) => {
+                setGeneratedPreviews((prev) =>
+                  prev.map((p) => (p.id === completedPage.id ? completedPage : p))
+                )
+              })
+              .catch((err) => {
+                const failedPage = new ColoringPage({
+                  ...Object.assign({}, page),
+                  status: 'failed',
+                  errorMessage: err.message || 'Generation failed',
+                })
+                setGeneratedPreviews((prev) =>
+                  prev.map((p) => (p.id === page.id ? failedPage : p))
+                )
+              })
+          })
         }
       }
       if (!result.success) {
@@ -222,6 +244,8 @@ export const CreateColoringPage = () => {
               >
                 {generatedPreviews.map((page, index) => {
                   const url = page.imageUrl || page.thumbnailUrl
+                  const isProcessing = page.status === 'processing' || (!url && page.status !== 'failed')
+                  const isFailed = page.status === 'failed'
                   return (
                     <Box
                       key={page.id || index}
@@ -236,27 +260,50 @@ export const CreateColoringPage = () => {
                         border: '1px solid rgba(255,255,255,0.1)',
                       }}
                     >
-                      <Box
-                        component="img"
-                        src={url}
-                        alt={page.title || `Generated ${index + 1}`}
-                        onLoad={(e) => {
-                          if (generatedPreviews.length === 1 && imageAspectRatio == null) {
-                            const { naturalWidth, naturalHeight } = e.target
-                            if (naturalWidth && naturalHeight) {
-                              setImageAspectRatio(`${naturalWidth} / ${naturalHeight}`)
+                      {isProcessing && (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                          <CircularProgress size={40} sx={{ color: 'primary.main' }} />
+                          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                            Generating…
+                          </Typography>
+                        </Box>
+                      )}
+                      {isFailed && (
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: 'error.light',
+                            textAlign: 'center',
+                            px: 1,
+                            fontSize: '0.875rem',
+                          }}
+                        >
+                          {page.errorMessage || 'Generation failed'}
+                        </Typography>
+                      )}
+                      {!isProcessing && !isFailed && url && (
+                        <Box
+                          component="img"
+                          src={url}
+                          alt={page.title || `Generated ${index + 1}`}
+                          onLoad={(e) => {
+                            if (generatedPreviews.length === 1 && imageAspectRatio == null) {
+                              const { naturalWidth, naturalHeight } = e.target
+                              if (naturalWidth && naturalHeight) {
+                                setImageAspectRatio(`${naturalWidth} / ${naturalHeight}`)
+                              }
                             }
-                          }
-                        }}
-                        sx={{
-                          maxWidth: '100%',
-                          maxHeight: '100%',
-                          width: 'auto',
-                          height: 'auto',
-                          objectFit: 'contain',
-                          borderRadius: 1,
-                        }}
-                      />
+                          }}
+                          sx={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            width: 'auto',
+                            height: 'auto',
+                            objectFit: 'contain',
+                            borderRadius: 1,
+                          }}
+                        />
+                      )}
                     </Box>
                   )
                 })}

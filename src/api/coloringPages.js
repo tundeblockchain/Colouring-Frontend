@@ -83,6 +83,56 @@ export const generateColoringPage = async (params) => {
 }
 
 /**
+ * Get a single coloring page by ID (for polling async generation).
+ * @returns {{ success: boolean, data?: ColoringPage, error?: string }}
+ */
+export const getColoringPage = async (userId, pageId) => {
+  const result = await apiRequest(`/coloring-pages/${pageId}`, {
+    method: 'GET',
+    userId,
+  })
+  if (result.success && result.data) {
+    const raw = result.data.coloringPage ?? result.data
+    return {
+      success: true,
+      data: new ColoringPage(raw),
+    }
+  }
+  return {
+    success: false,
+    error: result.error || 'Failed to fetch coloring page',
+    data: null,
+  }
+}
+
+/**
+ * Poll a single coloring page until status is 'completed' or 'failed'.
+ * @param {string} userId
+ * @param {string} pageId
+ * @param {{ intervalMs?: number, maxAttempts?: number }} options
+ * @returns {Promise<ColoringPage>} resolves with completed page; rejects on failed or timeout
+ */
+export const pollColoringPageUntilComplete = async (userId, pageId, options = {}) => {
+  const { intervalMs = 2000, maxAttempts = 60 } = options
+  for (let i = 0; i < maxAttempts; i++) {
+    const { success, data: page } = await getColoringPage(userId, pageId)
+    if (!success || !page) {
+      throw new Error('Failed to fetch page status')
+    }
+    if (page.status === 'completed') {
+      return page
+    }
+    if (page.status === 'failed') {
+      const err = new Error(page.errorMessage || 'Generation failed')
+      err.page = page
+      throw err
+    }
+    await new Promise((r) => setTimeout(r, intervalMs))
+  }
+  throw new Error('Generation timed out')
+}
+
+/**
  * Get user's coloring pages
  */
 export const getUserColoringPages = async (userId, filters = {}) => {

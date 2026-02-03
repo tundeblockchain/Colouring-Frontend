@@ -1,5 +1,6 @@
 /**
  * Coloring Page model
+ * @typedef {'processing' | 'completed' | 'failed'} ColoringPageStatus
  */
 export class ColoringPage {
   constructor(data) {
@@ -15,5 +16,8 @@ export class ColoringPage {
     this.isFavorite = data.isFavorite || false
     this.folderId = data.folderId || null
     this.createdAt = data.createdAt || new Date().toISOString()
+    // Async generation: treat missing status as completed for backward compatibility
+    this.status = data.status ?? 'completed'
+    this.errorMessage = data.errorMessage ?? null
   }
 }
