@@ -30,6 +30,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useUser } from '../hooks/useUser'
 import { useGenerateColoringPage } from '../hooks/useColoringPages'
 import { pollColoringPageUntilComplete } from '../api/coloringPages'
+import { improvePrompt } from '../api/prompts'
 import { ColoringPage } from '../models/coloringPage'
 
 const tabTypes = {
@@ -50,8 +51,8 @@ export const CreateColoringPage = () => {
   const [activeTab, setActiveTab] = useState(
     initialTab === 'drawing' ? 'text' : initialTab
   )
-  const [prompt, setPrompt] = useState('fancy anime footballer')
-  const [autoImprove, setAutoImprove] = useState(true)
+  const [prompt, setPrompt] = useState(initialTab === 'photo' ? 'simple lines' : 'fancy anime footballer')
+  const [improveLoading, setImproveLoading] = useState(false)
   const [quality, setQuality] = useState('fast')
   const [dimensions, setDimensions] = useState('2:3')
   const [numImages, setNumImages] = useState(1)
@@ -68,9 +69,28 @@ export const CreateColoringPage = () => {
       setPhotoPreviewUrl(null)
     }
     setPhotoFile(null)
+    if (newValue === 'photo') setPrompt('simple lines')
     setActiveTab(newValue)
     const tabPath = Object.keys(tabTypes).find(key => tabTypes[key] === newValue)
     navigate(`/create/${tabPath}`)
+  }
+
+  const handleImprove = async () => {
+    if (!user?.uid || !prompt.trim()) return
+    setImproveLoading(true)
+    try {
+      const result = await improvePrompt(user.uid, { prompt: prompt.trim() })
+      if (result.success && result.data?.improvedPrompt) {
+        setPrompt(result.data.improvedPrompt)
+      } else {
+        alert(result.error || 'Failed to improve prompt')
+      }
+    } catch (err) {
+      console.error('Improve prompt error:', err)
+      alert(err.message || 'Failed to improve prompt')
+    } finally {
+      setImproveLoading(false)
+    }
   }
 
   const handlePhotoFileChange = (e) => {
@@ -472,8 +492,10 @@ export const CreateColoringPage = () => {
             <Box sx={{ display: 'flex', gap: 1, marginBottom: 1 }}>
               <Button
                 size="small"
-                startIcon={<AutoAwesome />}
+                startIcon={improveLoading ? <CircularProgress size={16} color="inherit" /> : <AutoAwesome />}
                 sx={{ color: 'text.secondary' }}
+                onClick={handleImprove}
+                disabled={improveLoading || !prompt.trim()}
               >
                 Improve
               </Button>
@@ -485,16 +507,6 @@ export const CreateColoringPage = () => {
                 Shuffle
               </Button>
             </Box>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={autoImprove}
-                  onChange={(e) => setAutoImprove(e.target.checked)}
-                  size="small"
-                />
-              }
-              label="Auto-improve"
-            />
           </Box>
           )}
 
