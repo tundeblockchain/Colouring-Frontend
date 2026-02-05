@@ -3,6 +3,7 @@ import { useAuth } from './hooks/useAuth'
 import { CircularProgress, Box } from '@mui/material'
 
 // Screens
+import { Landing } from './screens/Landing'
 import { Login } from './screens/Login'
 import { Register } from './screens/Register'
 import { Dashboard } from './screens/Dashboard'
@@ -12,6 +13,7 @@ import { CreateColoringPage } from './screens/CreateColoringPage'
 import { Profile } from './screens/Profile'
 import { Folders } from './screens/Folders'
 import { FolderView } from './screens/FolderView'
+import { Pricing } from './screens/Pricing'
 import { ChoosePlan } from './screens/ChoosePlan'
 import { AddOneTimeCredits } from './screens/AddOneTimeCredits'
 
@@ -41,6 +43,19 @@ const ProtectedRoute = ({ children }) => {
   return user ? children : <Navigate to="/login" replace />
 }
 
+// Show landing when not logged in, dashboard when logged in
+const LandingOrDashboard = () => {
+  const { user, loading } = useAuth()
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    )
+  }
+  return user ? <Navigate to="/dashboard" replace /> : <Landing /> 
+}
+
 function App() {
   return (
     <ToastProvider>
@@ -48,6 +63,7 @@ function App() {
       <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/pricing" element={<Pricing />} />
       <Route
         path="/dashboard"
         element={
@@ -144,7 +160,7 @@ function App() {
           </ProtectedRoute>
         }
       />
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<LandingOrDashboard />} />
       </Routes>
     </ToastProvider>
   )

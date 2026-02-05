@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import {
   Box,
   Container,
@@ -18,6 +18,8 @@ import { getUserProfile, registerUser as registerUserAPI } from '../api/user'
 
 export const Register = () => {
   const navigate = useNavigate()
+  const location = useLocation()
+  const from = location.state?.from || '/dashboard'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -71,8 +73,8 @@ export const Register = () => {
         }
       }
 
-      // Success - navigate to dashboard
-      navigate('/dashboard')
+      // Success - navigate to dashboard or intended page from landing
+      navigate(from)
     } catch (error) {
       console.error('Registration error:', error)
       setError(error.message || 'Failed to register')
@@ -126,8 +128,8 @@ export const Register = () => {
         return
       }
 
-      // Success - navigate to dashboard
-      navigate('/dashboard')
+      // Success - navigate to dashboard or intended page from landing
+      navigate(from)
     } catch (error) {
       console.error('Google sign-in error:', error)
       setError(error.message || 'Failed to sign in with Google')

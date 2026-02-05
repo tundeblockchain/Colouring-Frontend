@@ -2,9 +2,63 @@ import { ColoringPage } from '../models/coloringPage'
 import { apiRequest } from './apiClient'
 
 /**
+ * Get a presigned S3 upload URL for photo-based generation.
+ * POST /api/coloring-pages/photo-upload-url
+ *
+ * @param {string} userId
+ * @param {{ contentType?: string }} options - optional contentType e.g. "image/jpeg" or "image/png"
+ * @returns {{ success: boolean, data?: { uploadUrl, bucket, key, contentType, expiresInSeconds }, error?: string }}
+ */
+export const getPhotoUploadUrl = async (userId, options = {}) => {
+  const body = {}
+  if (options.contentType) {
+    body.contentType = options.contentType
+  }
+  const result = await apiRequest('/coloring-pages/photo-upload-url', {
+    method: 'POST',
+    userId,
+    body: Object.keys(body).length ? body : undefined,
+  })
+  if (result.success && result.data) {
+    return {
+      success: true,
+      data: {
+        uploadUrl: result.data.uploadUrl,
+        bucket: result.data.bucket,
+        key: result.data.key,
+        contentType: result.data.contentType || 'image/jpeg',
+        expiresInSeconds: result.data.expiresInSeconds,
+      },
+    }
+  }
+  return {
+    success: false,
+    error: result.error || 'Failed to get upload URL',
+    data: null,
+  }
+}
+
+/**
+ * Upload file to S3 using presigned URL. Do not add auth headers; Content-Type must match response.
+ */
+const uploadFileToPresignedUrl = async (uploadUrl, file, contentType) => {
+  const response = await fetch(uploadUrl, {
+    method: 'PUT',
+    body: file,
+    headers: {
+      'Content-Type': contentType,
+    },
+  })
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(text || `Upload failed: ${response.status}`)
+  }
+}
+
+/**
  * Generate one or more coloring pages (up to 6).
  * All generated pages can be assigned to the same folder via folderId.
- * For type 'photo', pass imageFile (File) to upload an image; the backend generates based on it.
+ * For type 'photo': uploads image to S3 via presigned URL, then calls generate with S3 location (no file in generate request).
  *
  * @param {object} params - { userId, prompt, title, type, style, quality, dimensions, folderId, numImages (1-6), imageFile?: File, wordArtStyle?: string }
  * @returns {{ success: boolean, data?: { coloringPages: ColoringPage[], creditsRemaining?: number }, error?: string }}
@@ -31,18 +85,40 @@ export const generateColoringPage = async (params) => {
   const qualityValue = quality || style || 'fast'
 
   let body
-  if (imageFile) {
-    body = new FormData()
-    body.append('image', imageFile)
-    body.append('prompt', hasPrompt ? String(prompt).trim() : '')
-    body.append('type', type || 'photo')
-    body.append('size', dimensions || '2:3')
-    body.append('dimensions', dimensions || '2:3')
-    body.append('quality', qualityValue)
-    body.append('style', qualityValue)
-    body.append('numImages', String(count))
-    if (title) body.append('title', title)
-    if (folderId) body.append('folderId', folderId)
+
+  if (isPhoto && imageFile) {
+    // Step 1: Get presigned upload URL
+    const contentType = imageFile.type === 'image/png' ? 'image/png' : 'image/jpeg'
+    const urlResult = await getPhotoUploadUrl(userId, { contentType })
+    if (!urlResult.success || !urlResult.data) {
+      return {
+        success: false,
+        error: urlResult.error || 'Failed to get upload URL',
+      }
+    }
+    const { uploadUrl, bucket, key, contentType: resolvedContentType } = urlResult.data
+
+    // Step 2: Upload file to S3 (no auth headers; Content-Type must match)
+    try {
+      await uploadFileToPresignedUrl(uploadUrl, imageFile, resolvedContentType)
+    } catch (err) {
+      return {
+        success: false,
+        error: err.message || 'Upload failed',
+      }
+    }
+
+    // Step 3: Call generate with S3 location (no image in body)
+    body = {
+      type: 'photo',
+      photoS3Key: key,
+      photoS3Bucket: bucket,
+      dimensions: dimensions || '2:3',
+      quality: qualityValue,
+      numImages: count,
+    }
+    if (title) body.title = title
+    if (folderId) body.folderId = folderId
   } else {
     body = {
       prompt: prompt.trim(),

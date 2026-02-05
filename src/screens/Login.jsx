@@ -181,7 +181,7 @@ export const Login = () => {
               {loading ? <CircularProgress size={24} /> : 'Sign in with Google'}
             </Button>
 
-            <Box sx={{ textAlign: 'center' }}>
+            <Box sx={{ textAlign: 'center', marginBottom: 2 }}>
               <Typography variant="body2" color="text.secondary">
                 Don't have an account?{' '}
                 <Link

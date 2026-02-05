@@ -248,7 +248,7 @@ export const ChoosePlan = () => {
                       <StarIcon fontSize="small" /> Popular
                     </Box>
                   )}
-                  <CardContent sx={{ flexGrow: 1, pt: 1.5, pb: 2, '&:last-child': { pb: 2 } }}>
+                  <CardContent sx={{ flexGrow: 1, pt: 1.5, pb: 3, '&:last-child': { paddingBottom: 3 } }}>
                     <Typography variant="h6" fontWeight={700} gutterBottom>
                       {plan.name}
                     </Typography>

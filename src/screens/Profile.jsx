@@ -109,7 +109,7 @@ export const Profile = () => {
     setDeletePassword('')
     if (authResult.success) {
       showToast('Account deleted successfully.')
-      navigate('/login', { replace: true })
+      navigate('/', { replace: true })
     } else {
       showToast(authResult.error || 'Account data removed. Please sign out and sign in again to complete.', 'error')
     }

@@ -49,7 +49,7 @@ export const Sidebar = () => {
   const handleLogout = async () => {
     setLogoutDialogOpen(false)
     await logoutUser()
-    navigate('/login')
+    navigate('/')
   }
 
   const getInitials = (email) => {
