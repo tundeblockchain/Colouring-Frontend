@@ -127,8 +127,8 @@ export const Header = ({ user }) => {
       >
         <Box
           component="img"
-          src="/logo.png"
-          alt="ColorBliss"
+          src="/ColorCharm-logo.png"
+          alt="Color Charm"
           sx={{
             height: 32,
             width: 32,
@@ -147,7 +147,7 @@ export const Header = ({ user }) => {
             display: { xs: 'none', md: 'block' },
           }}
         >
-          ColorBliss
+          Color Charm
         </Box>
       </Box>
 

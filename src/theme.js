@@ -1,6 +1,6 @@
 import { createTheme } from '@mui/material/styles'
 
-const STORAGE_KEY = 'colorbliss-theme'
+const STORAGE_KEY = 'colorcharm-theme'
 
 const sharedPalette = {
   primary: {

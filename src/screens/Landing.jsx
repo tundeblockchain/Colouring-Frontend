@@ -14,6 +14,10 @@ import {
   CardContent,
   Grid,
   CircularProgress,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
   useTheme,
   useMediaQuery,
 } from '@mui/material'
@@ -24,10 +28,11 @@ import {
   PhotoCamera,
   TextFields,
   Star as StarIcon,
+  Check as CheckIcon,
 } from '@mui/icons-material'
 import { useSubscriptionPlans } from '../hooks/useSubscriptionPlans'
 
-const SITE_NAME = 'ColorBliss'
+const SITE_NAME = 'Color Charm'
 
 const formatPrice = (amountInCents, currency = 'usd') => {
   const value = amountInCents / 100
@@ -87,6 +92,8 @@ const features = [
   },
 ]
 
+const PLAN_PAGE_LIMIT = { starter: 250, hobby: 500, artist: 1000, business: 5000 }
+
 const FALLBACK_PLANS = [
   {
     id: 'starter',
@@ -96,6 +103,7 @@ const FALLBACK_PLANS = [
     priceMonthly: 9,
     priceAnnual: 90,
     prices: { month: { amount: 900, currency: 'usd' }, year: { amount: 9000, currency: 'usd' } },
+    moreFeatures: ['Create from text, photos & word art', 'Standard quality images', 'Download & print'],
     popular: false,
   },
   {
@@ -106,6 +114,7 @@ const FALLBACK_PLANS = [
     priceMonthly: 18,
     priceAnnual: 180,
     prices: { month: { amount: 1800, currency: 'usd' }, year: { amount: 18000, currency: 'usd' } },
+    moreFeatures: ['Everything in Starter', 'Standard + HD quality', 'Priority generation'],
     popular: false,
   },
   {
@@ -116,6 +125,7 @@ const FALLBACK_PLANS = [
     priceMonthly: 35,
     priceAnnual: 350,
     prices: { month: { amount: 3500, currency: 'usd' }, year: { amount: 35000, currency: 'usd' } },
+    moreFeatures: ['Everything in Hobby', 'HD quality', 'Larger dimensions', 'Commercial use', 'Priority support'],
     popular: true,
   },
   {
@@ -126,14 +136,15 @@ const FALLBACK_PLANS = [
     priceMonthly: 99,
     priceAnnual: 990,
     prices: { month: { amount: 9900, currency: 'usd' }, year: { amount: 99000, currency: 'usd' } },
+    moreFeatures: ['Everything in Artist', 'All quality options', 'Max dimensions', 'High volume', 'Priority support'],
     popular: false,
   },
 ]
 
 const faqItems = [
   {
-    q: 'What is ColorBliss?',
-    a: 'ColorBliss is an AI-powered colouring page generator. Create printable colouring pages from text prompts, turn photos into line art, or design custom word art — all in seconds.',
+    q: 'What is Color Charm?',
+    a: 'Color Charm is an AI-powered colouring page generator. Create printable colouring pages from text prompts, turn photos into line art, or design custom word art — all in seconds.',
   },
   {
     q: 'How do I make my own colouring page?',
@@ -148,8 +159,8 @@ const faqItems = [
     a: 'Our AI turns your ideas or photos into clean black-and-white line art suitable for colouring. You get full control over style, and you can adjust contrast and brightness before downloading.',
   },
   {
-    q: 'Is ColorBliss free to use?',
-    a: 'You can start with a free trial that includes credits to try all features. When you need more, choose a plan that fits how much you create.',
+    q: 'Is Color Charm free to use?',
+    a: 'You can start with a free trial that includes credits to try our text and word art features. When you need more, choose a plan that fits how much you create.',
   },
   {
     q: 'Can I print the colouring pages?',
@@ -176,8 +187,8 @@ const footerColumns = [
     links: [
       { label: 'About', to: '#' },
       { label: 'Blog', to: '#' },
-      { label: 'Terms & conditions', to: '#' },
-      { label: 'Privacy policy', to: '#' },
+      { label: 'Terms & conditions', to: '/terms' },
+      { label: 'Privacy policy', to: '/privacy' },
     ],
   },
   {
@@ -194,7 +205,7 @@ export const Landing = () => {
   const isDark = theme.palette.mode === 'dark'
   const isSmall = useMediaQuery(theme.breakpoints.down('md'))
   const navigate = useNavigate()
-  const [billingInterval, setBillingInterval] = useState('year')
+  const [billingInterval, setBillingInterval] = useState('month')
   const { data: plansData, isLoading: plansLoading } = useSubscriptionPlans()
   const apiPlans = plansData?.plans ?? []
 
@@ -250,7 +261,12 @@ export const Landing = () => {
                 color: 'text.primary',
               }}
             >
-              <Palette sx={{ color: 'primary.main', fontSize: 32 }} />
+              <Box
+                component="img"
+                src="/ColorCharm-logo.png"
+                alt="Color Charm"
+                sx={{ height: 32, width: 32 }}
+              />
               <Typography variant="h6" fontWeight={700}>
                 {SITE_NAME}
               </Typography>
@@ -557,12 +573,28 @@ export const Landing = () => {
                         / {billingInterval === 'year' ? 'year' : 'month'}
                       </Typography>
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      {(plan.credits ?? 0).toLocaleString()} credits per month
+                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                      What&apos;s included:
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                      ✓ Create from text, photos & word art
-                    </Typography>
+                    <List dense disablePadding sx={{ mb: 2 }}>
+                      <ListItem disablePadding sx={{ py: 0.25 }}>
+                        <ListItemIcon sx={{ minWidth: 32 }}>
+                          <CheckIcon color="success" fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={`${(plan.credits ?? 0).toLocaleString()} credits per month (typically up to ${PLAN_PAGE_LIMIT[plan.id] ?? plan.credits} pages)`}
+                          primaryTypographyProps={{ variant: 'body2' }}
+                        />
+                      </ListItem>
+                      {(Array.isArray(plan.moreFeatures) ? plan.moreFeatures : ['Create from text, photos & word art', 'Download & print']).map((feature) => (
+                        <ListItem key={feature} disablePadding sx={{ py: 0.25 }}>
+                          <ListItemIcon sx={{ minWidth: 32 }}>
+                            <CheckIcon color="success" fontSize="small" />
+                          </ListItemIcon>
+                          <ListItemText primary={feature} primaryTypographyProps={{ variant: 'body2' }} />
+                        </ListItem>
+                      ))}
+                    </List>
                     <Button
                       fullWidth
                       variant={plan.popular ? 'contained' : 'outlined'}

@@ -354,7 +354,7 @@ export const Profile = () => {
                   Get Help
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ marginBottom: 2 }}>
-                  New to ColorBliss? Take a quick tour to learn where everything is.
+                  New to Color Charm? Take a quick tour to learn where everything is.
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                   <Button

@@ -153,7 +153,7 @@ export const Register = () => {
           <CardContent sx={{ padding: 4 }}>
             <Box sx={{ textAlign: 'center', marginBottom: 3 }}>
               <Typography variant="h4" component="h1" gutterBottom>
-                ColorBliss
+                Color Charm
               </Typography>
               <Typography variant="body1" color="text.secondary">
                 Create your account

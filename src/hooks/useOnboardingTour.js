@@ -3,8 +3,8 @@ import { driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import '../styles/driver-tour.css'
 
-const ONBOARDING_STORAGE_KEY = 'colorbliss_onboarding_complete'
-const CREATE_TOUR_STORAGE_KEY = 'colorbliss_create_tour_complete'
+const ONBOARDING_STORAGE_KEY = 'colorcharm_onboarding_complete'
+const CREATE_TOUR_STORAGE_KEY = 'colorcharm_create_tour_complete'
 
 const getCreateScreenTourSteps = () => [
   {
@@ -39,7 +39,7 @@ const getCreateScreenTourSteps = () => [
 const getTourSteps = () => [
   {
     popover: {
-      title: 'Welcome to ColorBliss!',
+      title: 'Welcome to Color Charm!',
       description: "Let's take a quick tour to get you started.<br /><br />We'll show you the key features so you can start creating beautiful coloring pages in no time.",
       side: 'bottom',
       align: 'center',
@@ -146,7 +146,7 @@ export const useOnboardingTour = (options = {}) => {
       showProgress: true,
       allowClose: true,
       overlayColor: 'rgba(0, 0, 0, 0.6)',
-      popoverClass: 'driver-popover-colorbliss',
+      popoverClass: 'driver-popover-color-charm',
       nextBtnText: 'Next',
       prevBtnText: 'Back',
       doneBtnText: 'Got it!',
@@ -192,7 +192,7 @@ export const useCreateScreenTour = (options = {}) => {
       showProgress: true,
       allowClose: true,
       overlayColor: 'rgba(0, 0, 0, 0.6)',
-      popoverClass: 'driver-popover-colorbliss',
+      popoverClass: 'driver-popover-color-charm',
       nextBtnText: 'Next',
       prevBtnText: 'Back',
       doneBtnText: 'Got it!',

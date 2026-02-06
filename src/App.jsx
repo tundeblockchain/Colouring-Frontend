@@ -16,6 +16,8 @@ import { FolderView } from './screens/FolderView'
 import { Pricing } from './screens/Pricing'
 import { ChoosePlan } from './screens/ChoosePlan'
 import { AddOneTimeCredits } from './screens/AddOneTimeCredits'
+import { Terms } from './screens/Terms'
+import { Privacy } from './screens/Privacy'
 
 // Components
 import { AuthHandler } from './components/AuthHandler'
@@ -64,6 +66,8 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/pricing" element={<Pricing />} />
+      <Route path="/terms" element={<Terms />} />
+      <Route path="/privacy" element={<Privacy />} />
       <Route
         path="/dashboard"
         element={

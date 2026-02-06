@@ -158,7 +158,7 @@ export const Pricing = () => {
             >
               <Palette sx={{ color: 'primary.main', fontSize: 28 }} />
               <Typography variant="h6" fontWeight={700}>
-                ColorBliss
+                Color Charm
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
