@@ -347,6 +347,45 @@ export const Profile = () => {
             </Card>
           )}
 
+          {activeSection === 'help' && (
+            <Card sx={{ marginBottom: 3 }}>
+              <CardContent sx={{ pt: 1.5, pb: 2, '&:last-child': { pb: 2 } }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  Get Help
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ marginBottom: 2 }}>
+                  New to ColorBliss? Take a quick tour to learn where everything is.
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => navigate('/dashboard?tour=1')}
+                    sx={{
+                      alignSelf: 'flex-start',
+                      borderColor: 'primary.main',
+                      color: 'primary.main',
+                      '&:hover': { borderColor: 'primary.dark', backgroundColor: 'action.hover' },
+                    }}
+                  >
+                    Take product tour
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={() => navigate('/create/text?tour=1')}
+                    sx={{
+                      alignSelf: 'flex-start',
+                      borderColor: 'primary.main',
+                      color: 'primary.main',
+                      '&:hover': { borderColor: 'primary.dark', backgroundColor: 'action.hover' },
+                    }}
+                  >
+                    Take Create screen tour
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          )}
+
           {activeSection === 'delete' && (
             <Card sx={{ marginBottom: 3, borderColor: 'error.main', border: 2 }}>
               <CardContent sx={{ pt: 1.5, pb: 2, '&:last-child': { pb: 2 } }}>

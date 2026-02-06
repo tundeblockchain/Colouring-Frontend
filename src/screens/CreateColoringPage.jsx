@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Box,
   Typography,
@@ -29,6 +29,7 @@ import { MainLayout } from '../components/Layout/MainLayout'
 import { useAuth } from '../hooks/useAuth'
 import { useUser } from '../hooks/useUser'
 import { useGenerateColoringPage } from '../hooks/useColoringPages'
+import { useCreateScreenTour } from '../hooks/useOnboardingTour'
 import { pollColoringPageUntilComplete } from '../api/coloringPages'
 import { improvePrompt } from '../api/prompts'
 import { ColoringPage } from '../models/coloringPage'
@@ -43,15 +44,27 @@ const tabTypes = {
 export const CreateColoringPage = () => {
   const { type } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { user } = useAuth()
   const { data: userProfile } = useUser(user?.uid)
   const generateMutation = useGenerateColoringPage()
 
+  const isFreePlan = userProfile?.plan === 'free'
+  const hasSubscription = !isFreePlan
+
+  // Redirect free users away from photo tab if accessed via URL
+  useEffect(() => {
+    if (type === 'photo' && isFreePlan) {
+      navigate('/create/text', { replace: true })
+    }
+  }, [type, isFreePlan, navigate])
+
   const initialTab = tabTypes[type] || 'text'
+  const effectiveInitialTab = (initialTab === 'photo' && isFreePlan) ? 'text' : initialTab
   const [activeTab, setActiveTab] = useState(
-    initialTab === 'drawing' ? 'text' : initialTab
+    effectiveInitialTab === 'drawing' ? 'text' : effectiveInitialTab
   )
-  const [prompt, setPrompt] = useState(initialTab === 'photo' ? 'simple lines' : 'fancy anime footballer')
+  const [prompt, setPrompt] = useState(effectiveInitialTab === 'photo' ? 'simple lines' : 'fancy anime footballer')
   const [improveLoading, setImproveLoading] = useState(false)
   const [quality, setQuality] = useState('fast')
   const [dimensions, setDimensions] = useState('2:3')
@@ -64,6 +77,12 @@ export const CreateColoringPage = () => {
   const [wordArtStyle, setWordArtStyle] = useState('bubble')
 
   const handleTabChange = (event, newValue) => {
+    // Prevent free users from accessing photo tab
+    if (newValue === 'photo' && isFreePlan) {
+      alert('Photo generation is only available for subscribers. Please upgrade your plan to use this feature.')
+      return
+    }
+    
     if (photoPreviewUrl) {
       URL.revokeObjectURL(photoPreviewUrl)
       setPhotoPreviewUrl(null)
@@ -107,6 +126,13 @@ export const CreateColoringPage = () => {
 
   const handleGenerate = async () => {
     if (!user || !userProfile) {
+      return
+    }
+
+    // Prevent free users from generating photos
+    if (activeTab === 'photo' && isFreePlan) {
+      alert('Photo generation is only available for subscribers. Please upgrade your plan to use this feature.')
+      navigate('/profile')
       return
     }
 
@@ -192,8 +218,15 @@ export const CreateColoringPage = () => {
     }
   }
 
-  const isFreePlan = userProfile?.plan === 'free'
   const canGenerateMultiple = !isFreePlan
+  const forceRunCreateTour = searchParams.get('tour') === '1'
+  const showCreateTour = activeTab === 'text' || activeTab === 'wordArt'
+
+  useCreateScreenTour({
+    runOnMount: showCreateTour,
+    delay: 700,
+    forceRun: forceRunCreateTour,
+  })
 
   const aspectRatioMap = { '1:1': '1', '2:3': '2/3', '3:2': '3/2' }
   const hasPreviews = generatedPreviews.length > 0
@@ -378,7 +411,12 @@ export const CreateColoringPage = () => {
           <Tabs value={activeTab} onChange={handleTabChange} sx={{ marginBottom: 3 }}>
             <Tab label="Text Prompt" value="text" />
             <Tab label="Word Art" value="wordArt" />
-            <Tab label="Photo" value="photo" />
+            <Tab 
+              label="Photo" 
+              value="photo" 
+              disabled={isFreePlan}
+              sx={isFreePlan ? { opacity: 0.5 } : {}}
+            />
           </Tabs>
 
           <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, marginBottom: 1 }}>
@@ -398,54 +436,74 @@ export const CreateColoringPage = () => {
 
           {activeTab === 'photo' && (
             <Box sx={{ marginBottom: 3 }}>
-              <Typography variant="body2" sx={{ marginBottom: 1, fontWeight: 500 }}>
-                Upload a photo
-              </Typography>
-              <Button
-                variant="outlined"
-                component="label"
-                fullWidth
-                sx={{ mb: 2, py: 2, borderStyle: 'dashed' }}
-              >
-                {photoFile ? photoFile.name : 'Choose image (JPG, PNG, etc.)'}
-                <input
-                  type="file"
-                  hidden
-                  accept="image/*"
-                  onChange={handlePhotoFileChange}
-                />
-              </Button>
-              {photoPreviewUrl && (
-                <Box
-                  sx={{
-                    width: '100%',
-                    maxHeight: 200,
-                    borderRadius: 2,
-                    overflow: 'hidden',
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    mb: 2,
-                  }}
-                >
-                  <Box
-                    component="img"
-                    src={photoPreviewUrl}
-                    alt="Preview"
-                    sx={{ width: '100%', height: 'auto', maxHeight: 200, objectFit: 'contain', display: 'block' }}
-                  />
-                </Box>
+              {isFreePlan ? (
+                <Alert severity="info" sx={{ marginBottom: 2 }}>
+                  Photo generation is only available for subscribers. Upgrade to unlock this feature!
+                  <Button
+                    size="small"
+                    variant="contained"
+                    sx={{ marginLeft: 2 }}
+                    onClick={() => navigate('/profile')}
+                  >
+                    Upgrade Now!
+                  </Button>
+                </Alert>
+              ) : (
+                <>
+                  <Typography variant="body2" sx={{ marginBottom: 1, fontWeight: 500 }}>
+                    Upload a photo
+                  </Typography>
+                </>
               )}
-              <Typography variant="body2" sx={{ marginBottom: 1, fontWeight: 500, color: 'text.secondary' }}>
-                Style hint (optional)
-              </Typography>
-              <TextField
-                fullWidth
-                size="small"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="e.g. cartoon style, simple lines"
-                sx={{ marginBottom: 1 }}
-              />
+              {!isFreePlan && (
+                <>
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    fullWidth
+                    sx={{ mb: 2, py: 2, borderStyle: 'dashed' }}
+                  >
+                    {photoFile ? photoFile.name : 'Choose image (JPG, PNG, etc.)'}
+                    <input
+                      type="file"
+                      hidden
+                      accept="image/*"
+                      onChange={handlePhotoFileChange}
+                    />
+                  </Button>
+                  {photoPreviewUrl && (
+                    <Box
+                      sx={{
+                        width: '100%',
+                        maxHeight: 200,
+                        borderRadius: 2,
+                        overflow: 'hidden',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        mb: 2,
+                      }}
+                    >
+                      <Box
+                        component="img"
+                        src={photoPreviewUrl}
+                        alt="Preview"
+                        sx={{ width: '100%', height: 'auto', maxHeight: 200, objectFit: 'contain', display: 'block' }}
+                      />
+                    </Box>
+                  )}
+                  <Typography variant="body2" sx={{ marginBottom: 1, fontWeight: 500, color: 'text.secondary' }}>
+                    Style hint (optional)
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    placeholder="e.g. cartoon style, simple lines"
+                    sx={{ marginBottom: 1 }}
+                  />
+                </>
+              )}
             </Box>
           )}
 
@@ -476,7 +534,7 @@ export const CreateColoringPage = () => {
           )}
 
           {activeTab !== 'photo' && (
-          <Box sx={{ marginBottom: 3 }}>
+          <Box sx={{ marginBottom: 3 }} data-tour="tour-text-prompts">
             <Typography variant="body2" sx={{ marginBottom: 1, fontWeight: 500 }}>
               {activeTab === 'wordArt' ? 'Words, name, or numbers.' : 'Describe your coloring page.'}
             </Typography>
@@ -491,6 +549,7 @@ export const CreateColoringPage = () => {
             />
             <Box sx={{ display: 'flex', gap: 1, marginBottom: 1 }}>
               <Button
+                data-tour="tour-improve-button"
                 size="small"
                 startIcon={improveLoading ? <CircularProgress size={16} color="inherit" /> : <AutoAwesome />}
                 sx={{ color: 'text.secondary' }}
@@ -537,7 +596,7 @@ export const CreateColoringPage = () => {
           </Accordion>
           )}
 
-          <Accordion defaultExpanded sx={{ marginTop: activeTab === 'photo' ? 0 : 2 }}>
+          <Accordion defaultExpanded sx={{ marginTop: activeTab === 'photo' ? 0 : 2 }} data-tour="tour-create-settings">
             <AccordionSummary expandIcon={<ExpandMore />}>
               <Typography variant="body2" sx={{ fontWeight: 500 }}>
                 Settings

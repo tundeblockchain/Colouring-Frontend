@@ -1,0 +1,114 @@
+/* ColorBliss tour popover - Nunito font, rounded, sleek */
+
+.driver-popover.driver-popover-colorbliss,
+.driver-popover.driver-popover-colorbliss * {
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif !important;
+}
+
+.driver-popover.driver-popover-colorbliss {
+  padding: 20px 24px !important;
+  border-radius: 16px !important;
+  min-width: 280px !important;
+  max-width: 340px !important;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 10px 20px -5px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(0, 0, 0, 0.05) !important;
+  background: #ffffff !important;
+  color: #212121 !important;
+}
+
+.driver-popover.driver-popover-colorbliss .driver-popover-title {
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  color: #212121 !important;
+  letter-spacing: -0.01em !important;
+  margin-bottom: 4px !important;
+}
+
+.driver-popover.driver-popover-colorbliss .driver-popover-description {
+  font-size: 0.9375rem !important;
+  line-height: 1.6 !important;
+  font-weight: 400 !important;
+  color: #616161 !important;
+}
+
+.driver-popover.driver-popover-colorbliss .driver-popover-close-btn {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 10px !important;
+  color: #9e9e9e !important;
+  font-size: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: color 0.15s ease, background-color 0.15s ease !important;
+}
+
+.driver-popover.driver-popover-colorbliss .driver-popover-close-btn:hover,
+.driver-popover.driver-popover-colorbliss .driver-popover-close-btn:focus {
+  color: #424242 !important;
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.driver-popover.driver-popover-colorbliss .driver-popover-footer {
+  margin-top: 20px !important;
+  padding-top: 16px !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.driver-popover.driver-popover-colorbliss .driver-popover-progress-text {
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+  color: #757575 !important;
+}
+
+.driver-popover.driver-popover-colorbliss .driver-popover-footer button {
+  padding: 10px 20px !important;
+  font-size: 0.9375rem !important;
+  font-weight: 600 !important;
+  border-radius: 12px !important;
+  border: none !important;
+  transition: background-color 0.15s ease, transform 0.1s ease !important;
+}
+
+.driver-popover.driver-popover-colorbliss .driver-popover-footer button:hover,
+.driver-popover.driver-popover-colorbliss .driver-popover-footer button:focus {
+  transform: translateY(-1px) !important;
+}
+
+.driver-popover.driver-popover-colorbliss .driver-popover-prev-btn {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+  color: #424242 !important;
+}
+
+.driver-popover.driver-popover-colorbliss .driver-popover-prev-btn:hover,
+.driver-popover.driver-popover-colorbliss .driver-popover-prev-btn:focus {
+  background-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+.driver-popover.driver-popover-colorbliss .driver-popover-next-btn,
+.driver-popover.driver-popover-colorbliss .driver-popover-disabled.driver-popover-next-btn {
+  background-color: #64B5F6 !important;
+  color: #ffffff !important;
+}
+
+.driver-popover.driver-popover-colorbliss .driver-popover-next-btn:hover,
+.driver-popover.driver-popover-colorbliss .driver-popover-next-btn:focus,
+.driver-popover.driver-popover-colorbliss .driver-popover-disabled.driver-popover-next-btn:hover {
+  background-color: #42A5F5 !important;
+}
+
+.driver-popover.driver-popover-colorbliss .driver-popover-btn-disabled {
+  opacity: 0.6 !important;
+}
+
+.driver-popover.driver-popover-colorbliss .driver-popover-navigation-btns button + button {
+  margin-left: 8px !important;
+}
+
+.driver-popover.driver-popover-colorbliss .driver-popover-arrow {
+  border-width: 8px !important;
+  border-color: #ffffff !important;
+}

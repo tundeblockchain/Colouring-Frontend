@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Box,
   Typography,
@@ -9,6 +9,7 @@ import {
 } from '@mui/material'
 import { MainLayout } from '../components/Layout/MainLayout'
 import { FloatingActionButton } from '../components/FloatingActionButton'
+import { useOnboardingTour } from '../hooks/useOnboardingTour'
 
 const featureCards = [
   {
@@ -36,6 +37,17 @@ const featureCards = [
 
 export const Dashboard = () => {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const forceRunTour = searchParams.get('tour') === '1'
+
+  useOnboardingTour({
+    runOnMount: true,
+    delay: 600,
+    forceRun: forceRunTour,
+    onStart: forceRunTour
+      ? () => setSearchParams({}, { replace: true })
+      : undefined,
+  })
 
   return (
     <MainLayout>
@@ -59,7 +71,7 @@ export const Dashboard = () => {
           {' '}for inspiration!
         </Typography>
 
-        <Grid container spacing={3}>
+        <Grid container spacing={3} data-tour="tour-feature-cards">
           {featureCards.map((card) => (
             <Grid item xs={12} sm={6} md={3} key={card.id}>
               <Card

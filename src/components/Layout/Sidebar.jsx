@@ -21,7 +21,6 @@ import {
   FavoriteBorder,
   FolderOutlined,
   SettingsOutlined,
-  LightbulbOutlined,
   LogoutOutlined,
   DarkMode,
   LightMode,
@@ -31,12 +30,11 @@ import { useThemeMode } from '../../contexts/ThemeModeContext'
 import { logoutUser } from '../../api/auth'
 
 const menuItems = [
-  { icon: AddPhotoAlternateOutlined, path: '/dashboard', label: 'Create' },
-  { icon: ImageOutlined, path: '/gallery', label: 'Gallery' },
-  { icon: FavoriteBorder, path: '/favorites', label: 'Favorites' },
-  { icon: FolderOutlined, path: '/folders', label: 'Folders' },
-  { icon: SettingsOutlined, path: '/settings', label: 'Settings' },
-  { icon: LightbulbOutlined, path: '/ideas', label: 'Ideas' },
+  { icon: AddPhotoAlternateOutlined, path: '/dashboard', label: 'Create', tourId: 'tour-create' },
+  { icon: ImageOutlined, path: '/gallery', label: 'Gallery', tourId: 'tour-gallery' },
+  { icon: FavoriteBorder, path: '/favorites', label: 'Favorites', tourId: 'tour-favorites' },
+  { icon: FolderOutlined, path: '/folders', label: 'Folders', tourId: 'tour-folders' },
+  { icon: SettingsOutlined, path: '/settings', label: 'Settings', tourId: 'tour-settings' },
 ]
 
 export const Sidebar = () => {
@@ -85,6 +83,7 @@ export const Sidebar = () => {
             <ListItem key={item.path} disablePadding>
               <Tooltip title={item.label} placement="right">
                 <ListItemButton
+                  data-tour={item.tourId}
                   onClick={() => navigate(item.path)}
                   sx={{
                     justifyContent: 'center',
@@ -145,6 +144,7 @@ export const Sidebar = () => {
 
         <Tooltip title={user?.email || 'User'} placement="right">
           <Avatar
+            data-tour="tour-profile"
             sx={{
               bgcolor: 'primary.main',
               width: 40,
