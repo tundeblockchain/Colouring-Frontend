@@ -64,6 +64,15 @@ const getTourSteps = () => [
     },
   },
   {
+    element: '[data-tour="tour-credits"]',
+    popover: {
+      title: 'Credits',
+      description: 'Each coloring page you create uses credits from your balance.<br /><br />Click here anytime to see your remaining credits, plan details, and how to get more.<br /><br />You can upgrade your plan or buy one-time credit packs when you need them.',
+      side: 'bottom',
+      align: 'center',
+    },
+  },
+  {
     element: '[data-tour="tour-gallery"]',
     popover: {
       title: 'Gallery',

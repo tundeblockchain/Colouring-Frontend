@@ -194,6 +194,7 @@ export const Header = ({ user }) => {
 
         <Chip
           ref={creditsAnchorRef}
+          data-tour="tour-credits"
           icon={<RefreshOutlined fontSize="small" />}
           label={`${creditsRemaining} credits remaining`}
           color="primary"
