@@ -1,6 +1,8 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { CircularProgress, Box } from '@mui/material'
+import { pageview } from './utils/analytics'
 
 // Screens
 import { Landing } from './screens/Landing'
@@ -22,6 +24,15 @@ import { Privacy } from './screens/Privacy'
 // Components
 import { AuthHandler } from './components/AuthHandler'
 import { ToastProvider } from './contexts/ToastContext'
+
+// Track page views for GA4 on route change
+const PageViewTracker = () => {
+  const location = useLocation()
+  useEffect(() => {
+    pageview(location.pathname + location.search, document.title)
+  }, [location.pathname, location.search])
+  return null
+}
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -62,6 +73,7 @@ function App() {
   return (
     <ToastProvider>
       <AuthHandler />
+      <PageViewTracker />
       <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />

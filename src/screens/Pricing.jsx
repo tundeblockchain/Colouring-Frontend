@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { trackViewPricing } from '../utils/analytics'
 import {
   Box,
   Container,
@@ -28,6 +29,13 @@ import {
 } from '@mui/icons-material'
 import { useSubscriptionPlans } from '../hooks/useSubscriptionPlans'
 import { useAuth } from '../hooks/useAuth'
+
+// Track pricing page views for analytics
+const useTrackPricingView = () => {
+  useEffect(() => {
+    trackViewPricing()
+  }, [])
+}
 
 const formatPrice = (amountInCents, currency = 'usd') => {
   const value = amountInCents / 100
@@ -112,6 +120,7 @@ const baseFeatures = [
 ]
 
 export const Pricing = () => {
+  useTrackPricingView()
   const { user } = useAuth()
   const [interval, setInterval] = useState('month')
   const { data: plansData, isLoading: plansLoading, isError: plansError } = useSubscriptionPlans()

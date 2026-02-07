@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf'
+import { trackDownload } from './analytics'
 
 /**
  * Download an image from a URL. Saves as PNG or PDF.
@@ -17,6 +18,7 @@ export const downloadImage = async (imageUrl, title, format = 'png') => {
       link.href = url
       link.download = `${baseName}.png`
       link.click()
+      trackDownload('image', 1)
       // Delay revoke so the browser can start the download before the URL is released
       setTimeout(() => URL.revokeObjectURL(url), 200)
       return
@@ -45,6 +47,7 @@ export const downloadImage = async (imageUrl, title, format = 'png') => {
       const y = (pageH - h) / 2
       pdf.addImage(dataUrl, 'PNG', x, y, w, h)
       pdf.save(`${baseName}.pdf`)
+      trackDownload('pdf', 1)
     }
   } catch (err) {
     console.error('Download failed:', err)
@@ -117,6 +120,7 @@ export const downloadImagesAsPdf = async (items, filename = 'coloring-pages') =>
     }
     if (pdf) {
       pdf.save(`${baseName}.pdf`)
+      trackDownload('pdf', items.length)
     }
   } catch (err) {
     console.error('Download PDF failed:', err)
@@ -155,6 +159,7 @@ export const downloadImagesAsZip = async (items, zipFilename = 'coloring-pages')
     link.href = url
     link.download = `${baseName}.zip`
     link.click()
+    trackDownload('image', items.length)
     setTimeout(() => URL.revokeObjectURL(url), 200)
   } catch (err) {
     console.error('Download ZIP failed:', err)

@@ -7,7 +7,10 @@ import CssBaseline from '@mui/material/CssBaseline'
 import App from './App'
 import { getTheme } from './theme'
 import { ThemeModeProvider, useThemeMode } from './contexts/ThemeModeContext'
+import { initAnalytics } from './utils/analytics'
 import './index.css'
+
+initAnalytics()
 
 const queryClient = new QueryClient({
   defaultOptions: {

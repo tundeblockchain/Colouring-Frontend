@@ -33,6 +33,7 @@ import { useCreateScreenTour } from '../hooks/useOnboardingTour'
 import { pollColoringPageUntilComplete } from '../api/coloringPages'
 import { improvePrompt } from '../api/prompts'
 import { ColoringPage } from '../models/coloringPage'
+import { trackCreationType } from '../utils/analytics'
 
 const tabTypes = {
   text: 'text',
@@ -167,6 +168,7 @@ export const CreateColoringPage = () => {
       })
 
       if (result.success) {
+        trackCreationType(activeTab)
         const pages = result.data?.coloringPages ?? (result.data?.id ? [result.data] : [])
         const previewPages = Array.isArray(pages) ? pages : [pages]
         if (previewPages.length) {

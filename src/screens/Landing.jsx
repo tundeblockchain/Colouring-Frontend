@@ -23,7 +23,6 @@ import {
 } from '@mui/material'
 import {
   ExpandMore,
-  Palette,
   AutoAwesome,
   PhotoCamera,
   TextFields,
@@ -686,7 +685,12 @@ export const Landing = () => {
           <Grid container spacing={4}>
             <Grid item xs={12} md={4}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-                <Palette sx={{ color: 'primary.main', fontSize: 28 }} />
+                <Box
+                  component="img"
+                  src="/ColorCharm-logo.png"
+                  alt="Color Charm"
+                  sx={{ height: 32, width: 32 }}
+                />
                 <Typography variant="h6" fontWeight={700} color="primary.main">
                   {SITE_NAME}
                 </Typography>

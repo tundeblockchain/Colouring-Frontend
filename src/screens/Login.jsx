@@ -15,6 +15,7 @@ import {
 import { Google } from '@mui/icons-material'
 import { loginUser, signInWithGoogle } from '../api/auth'
 import { getUserProfile, registerUser as registerUserAPI } from '../api/user'
+import { trackLogin } from '../utils/analytics'
 
 export const Login = () => {
   const navigate = useNavigate()
@@ -31,6 +32,7 @@ export const Login = () => {
     const result = await loginUser(email, password)
 
     if (result.success) {
+      trackLogin('email')
       navigate('/dashboard')
     } else {
       setError(result.error || 'Failed to login')
@@ -85,6 +87,7 @@ export const Login = () => {
       }
 
       // Success - navigate to dashboard
+      trackLogin('google')
       navigate('/dashboard')
     } catch (error) {
       console.error('Google sign-in error:', error)

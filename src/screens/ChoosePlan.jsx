@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { trackViewChoosePlan } from '../utils/analytics'
 import {
   Box,
   Typography,
@@ -98,6 +99,9 @@ const baseFeatures = [
 ]
 
 export const ChoosePlan = () => {
+  useEffect(() => {
+    trackViewChoosePlan()
+  }, [])
   const navigate = useNavigate()
   const { user } = useAuth()
   const { data: userProfile } = useUser(user?.uid)

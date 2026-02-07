@@ -15,6 +15,7 @@ import {
 import { Google } from '@mui/icons-material'
 import { registerUser, signInWithGoogle } from '../api/auth'
 import { getUserProfile, registerUser as registerUserAPI } from '../api/user'
+import { trackSignUp, trackLogin } from '../utils/analytics'
 
 export const Register = () => {
   const navigate = useNavigate()
@@ -74,6 +75,7 @@ export const Register = () => {
       }
 
       // Success - navigate to dashboard or intended page from landing
+      trackSignUp('email')
       navigate(from)
     } catch (error) {
       console.error('Registration error:', error)
@@ -120,12 +122,16 @@ export const Register = () => {
             setLoading(false)
             return
           }
+        } else {
+          trackSignUp('google')
         }
       } else if (!userProfileResult.success && userProfileResult.status !== 404) {
         // Other errors (not 404)
         setError(userProfileResult.error || 'Failed to check user profile')
         setLoading(false)
         return
+      } else {
+        trackLogin('google')
       }
 
       // Success - navigate to dashboard or intended page from landing
