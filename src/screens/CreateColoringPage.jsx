@@ -52,16 +52,18 @@ export const CreateColoringPage = () => {
 
   const isFreePlan = userProfile?.plan === 'free'
   const hasSubscription = !isFreePlan
+  const planKey = (userProfile?.plan || '').toLowerCase()
+  const canUsePhoto = ['hobby', 'artist', 'business'].includes(planKey)
 
-  // Redirect free users away from photo tab if accessed via URL
+  // Redirect users without photo access (Free/Starter) away from photo tab if accessed via URL
   useEffect(() => {
-    if (type === 'photo' && isFreePlan) {
+    if (type === 'photo' && !canUsePhoto) {
       navigate('/create/text', { replace: true })
     }
-  }, [type, isFreePlan, navigate])
+  }, [type, canUsePhoto, navigate])
 
   const initialTab = tabTypes[type] || 'text'
-  const effectiveInitialTab = (initialTab === 'photo' && isFreePlan) ? 'text' : initialTab
+  const effectiveInitialTab = (initialTab === 'photo' && !canUsePhoto) ? 'text' : initialTab
   const [activeTab, setActiveTab] = useState(
     effectiveInitialTab === 'drawing' ? 'text' : effectiveInitialTab
   )
@@ -78,9 +80,9 @@ export const CreateColoringPage = () => {
   const [wordArtStyle, setWordArtStyle] = useState('bubble')
 
   const handleTabChange = (event, newValue) => {
-    // Prevent free users from accessing photo tab
-    if (newValue === 'photo' && isFreePlan) {
-      alert('Photo generation is only available for subscribers. Please upgrade your plan to use this feature.')
+    // Photo tab only for Hobby, Artist and Business plans
+    if (newValue === 'photo' && !canUsePhoto) {
+      alert('Photo generation is available on Hobby, Artist and Business plans. Please upgrade your plan to use this feature.')
       return
     }
     
@@ -130,9 +132,9 @@ export const CreateColoringPage = () => {
       return
     }
 
-    // Prevent free users from generating photos
-    if (activeTab === 'photo' && isFreePlan) {
-      alert('Photo generation is only available for subscribers. Please upgrade your plan to use this feature.')
+    // Photo generation only for Hobby, Artist and Business plans
+    if (activeTab === 'photo' && !canUsePhoto) {
+      alert('Photo generation is available on Hobby, Artist and Business plans. Please upgrade your plan to use this feature.')
       navigate('/profile')
       return
     }
@@ -416,8 +418,8 @@ export const CreateColoringPage = () => {
             <Tab 
               label="Photo" 
               value="photo" 
-              disabled={isFreePlan}
-              sx={isFreePlan ? { opacity: 0.5 } : {}}
+              disabled={!canUsePhoto}
+              sx={!canUsePhoto ? { opacity: 0.5 } : {}}
             />
           </Tabs>
 
@@ -438,9 +440,9 @@ export const CreateColoringPage = () => {
 
           {activeTab === 'photo' && (
             <Box sx={{ marginBottom: 3 }}>
-              {isFreePlan ? (
+              {!canUsePhoto ? (
                 <Alert severity="info" sx={{ marginBottom: 2 }}>
-                  Photo generation is only available for subscribers. Upgrade to unlock this feature!
+                  Photo generation is available on Hobby, Artist and Business plans. Upgrade to unlock this feature!
                   <Button
                     size="small"
                     variant="contained"
@@ -457,7 +459,7 @@ export const CreateColoringPage = () => {
                   </Typography>
                 </>
               )}
-              {!isFreePlan && (
+              {canUsePhoto && (
                 <>
                   <Button
                     variant="outlined"
