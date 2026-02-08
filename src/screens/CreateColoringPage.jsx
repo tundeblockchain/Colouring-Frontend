@@ -54,6 +54,7 @@ export const CreateColoringPage = () => {
   const hasSubscription = !isFreePlan
   const planKey = (userProfile?.plan || '').toLowerCase()
   const canUsePhoto = ['hobby', 'artist', 'business'].includes(planKey)
+  const canUseFrontCover = ['hobby', 'artist', 'business'].includes(planKey)
 
   const initialTab = tabTypes[type] || 'text'
   const effectiveInitialTab = initialTab === 'drawing' ? 'text' : initialTab
@@ -75,6 +76,7 @@ export const CreateColoringPage = () => {
   const [photoFile, setPhotoFile] = useState(null)
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState(null)
   const [wordArtStyle, setWordArtStyle] = useState('bubble')
+  const [titleForFrontCover, setTitleForFrontCover] = useState('')
 
   const handleTabChange = (event, newValue) => {
     if (photoPreviewUrl) {
@@ -124,9 +126,14 @@ export const CreateColoringPage = () => {
       return
     }
 
-    // Photo generation only for Hobby, Artist and Business plans
+    // Photo and Front Cover only for Hobby, Artist and Business plans
     if (activeTab === 'photo' && !canUsePhoto) {
       alert('Photo generation is available on Hobby, Artist and Business plans. Please upgrade your plan to use this feature.')
+      navigate('/profile')
+      return
+    }
+    if (activeTab === 'frontCover' && !canUseFrontCover) {
+      alert('Front cover generation is available on Hobby, Artist and Business plans. Please upgrade your plan to use this feature.')
       navigate('/profile')
       return
     }
@@ -159,6 +166,7 @@ export const CreateColoringPage = () => {
         numImages: count,
         ...(activeTab === 'photo' && photoFile ? { imageFile: photoFile } : {}),
         ...(activeTab === 'wordArt' ? { wordArtStyle } : {}),
+        ...(activeTab === 'frontCover' && titleForFrontCover?.trim() ? { titleForFrontCover: titleForFrontCover.trim() } : {}),
       })
 
       if (result.success) {
@@ -529,6 +537,35 @@ export const CreateColoringPage = () => {
 
           {activeTab !== 'photo' && (
           <Box sx={{ marginBottom: 3 }} data-tour="tour-text-prompts">
+            {activeTab === 'frontCover' && !canUseFrontCover && (
+              <Alert severity="info" sx={{ marginBottom: 2 }}>
+                Front cover generation is available on Hobby, Artist and Business plans. Upgrade to unlock this feature!
+                <Button
+                  size="small"
+                  variant="contained"
+                  sx={{ marginLeft: 2, marginTop: 1.5 }}
+                  onClick={() => navigate('/profile')}
+                >
+                  Upgrade Now!
+                </Button>
+              </Alert>
+            )}
+            {activeTab === 'frontCover' && (
+              <>
+                <Typography variant="body2" sx={{ marginBottom: 1, fontWeight: 500, color: 'text.secondary' }}>
+                  Title for front cover (optional)
+                </Typography>
+                <TextField
+                  fullWidth
+                  size="small"
+                  value={titleForFrontCover}
+                  onChange={(e) => setTitleForFrontCover(e.target.value)}
+                  placeholder="e.g. My Awesome Colouring Book"
+                  sx={{ marginBottom: 2 }}
+                  disabled={!canUseFrontCover}
+                />
+              </>
+            )}
             <Typography variant="body2" sx={{ marginBottom: 1, fontWeight: 500 }}>
               {activeTab === 'wordArt'
                 ? 'Words, name, or numbers.'
@@ -550,6 +587,7 @@ export const CreateColoringPage = () => {
                     : 'alien mother ship, crashing at beach.'
               }
               sx={{ marginBottom: 1 }}
+              disabled={activeTab === 'frontCover' && !canUseFrontCover}
             />
             <Box sx={{ display: 'flex', gap: 1, marginBottom: 1 }}>
               <Button
@@ -558,7 +596,7 @@ export const CreateColoringPage = () => {
                 variant="contained"
                 startIcon={improveLoading ? <CircularProgress size={16} color="inherit" /> : <AutoAwesome />}
                 onClick={handleImprove}
-                disabled={improveLoading || !prompt.trim()}
+                disabled={improveLoading || !prompt.trim() || (activeTab === 'frontCover' && !canUseFrontCover)}
                 sx={{
                   color: '#fff',
                   borderRadius: 4,
@@ -709,6 +747,7 @@ export const CreateColoringPage = () => {
             disabled={
               generateMutation.isPending ||
               (activeTab === 'photo' && !canUsePhoto) ||
+              (activeTab === 'frontCover' && !canUseFrontCover) ||
               (activeTab === 'photo' ? !photoFile : !prompt.trim())
             }
             sx={{

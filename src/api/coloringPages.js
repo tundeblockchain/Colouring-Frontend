@@ -60,11 +60,11 @@ const uploadFileToPresignedUrl = async (uploadUrl, file, contentType) => {
  * All generated pages can be assigned to the same folder via folderId.
  * For type 'photo': uploads image to S3 via presigned URL, then calls generate with S3 location (no file in generate request).
  *
- * @param {object} params - { userId, prompt, title, type, style, quality, dimensions, folderId, numImages (1-6), imageFile?: File, wordArtStyle?: string }
+ * @param {object} params - { userId, prompt, title, type, style, quality, dimensions, folderId, numImages (1-6), imageFile?: File, wordArtStyle?: string, titleForFrontCover?: string }
  * @returns {{ success: boolean, data?: { coloringPages: ColoringPage[], creditsRemaining?: number }, error?: string }}
  */
 export const generateColoringPage = async (params) => {
-  const { userId, prompt, title, type, style, quality, dimensions, folderId, numImages = 1, imageFile, wordArtStyle } = params
+  const { userId, prompt, title, type, style, quality, dimensions, folderId, numImages = 1, imageFile, wordArtStyle, titleForFrontCover } = params
 
   const isPhoto = type === 'photo'
   const hasPrompt = prompt != null && String(prompt).trim().length > 0
@@ -132,6 +132,9 @@ export const generateColoringPage = async (params) => {
     if (title) body.title = title
     if (folderId) body.folderId = folderId
     if (wordArtStyle) body.wordArtStyle = wordArtStyle
+    if (type === 'frontCover' && titleForFrontCover != null && String(titleForFrontCover).trim()) {
+      body.titleForFrontCover = String(titleForFrontCover).trim()
+    }
   }
 
   const result = await apiRequest('/coloring-pages/generate', {
