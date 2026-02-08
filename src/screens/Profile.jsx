@@ -18,6 +18,7 @@ import {
   DialogContentText,
   DialogActions,
 } from '@mui/material'
+import { Link } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { MainLayout } from '../components/Layout/MainLayout'
 import { useAuth } from '../hooks/useAuth'
@@ -26,6 +27,7 @@ import { useToast } from '../contexts/ToastContext'
 import { updatePassword as updateAuthPassword, deleteAuthUser } from '../api/auth'
 import { cancelSubscription } from '../api/subscriptions'
 import { deleteUserProfile } from '../api/user'
+import { sendHelpEmail } from '../api/help'
 
 const profileSections = [
   { id: 'info', label: 'Your Info' },
@@ -64,6 +66,9 @@ export const Profile = () => {
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [deletePassword, setDeletePassword] = useState('')
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [helpSubject, setHelpSubject] = useState('')
+  const [helpMessage, setHelpMessage] = useState('')
+  const [helpLoading, setHelpLoading] = useState(false)
   const isEmailProvider = user?.providerData?.some((p) => p.providerId === 'password')
 
   const plan = (userProfile?.plan || 'free').toLowerCase()
@@ -358,6 +363,19 @@ export const Profile = () => {
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                   <Button
+                    component={Link}
+                    to="/faq"
+                    variant="outlined"
+                    sx={{
+                      alignSelf: 'flex-start',
+                      borderColor: 'primary.main',
+                      color: 'primary.main',
+                      '&:hover': { borderColor: 'primary.dark', backgroundColor: 'action.hover' },
+                    }}
+                  >
+                    View FAQ
+                  </Button>
+                  <Button
                     variant="outlined"
                     onClick={() => navigate('/dashboard?tour=1')}
                     sx={{
@@ -381,6 +399,64 @@ export const Profile = () => {
                   >
                     Take Create screen tour
                   </Button>
+
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mt: 2, mb: 1 }}>
+                    Contact the help team
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ marginBottom: 2 }}>
+                    Send us a message and we&apos;ll get back to you as soon as we can.
+                  </Typography>
+                  <Box
+                    component="form"
+                    onSubmit={async (e) => {
+                      e.preventDefault()
+                      if (!user?.uid || helpLoading) return
+                      setHelpLoading(true)
+                      const result = await sendHelpEmail(user.uid, {
+                        subject: helpSubject,
+                        message: helpMessage,
+                      })
+                      setHelpLoading(false)
+                      if (result.success) {
+                        showToast('Message sent. We\'ll be in touch soon.')
+                        setHelpSubject('')
+                        setHelpMessage('')
+                      } else {
+                        showToast(result.error || 'Failed to send message.', 'error')
+                      }
+                    }}
+                    sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 480 }}
+                  >
+                    <TextField
+                      label="Subject"
+                      value={helpSubject}
+                      onChange={(e) => setHelpSubject(e.target.value)}
+                      required
+                      fullWidth
+                      size="small"
+                      placeholder="e.g. Billing question"
+                      disabled={helpLoading}
+                    />
+                    <TextField
+                      label="Message"
+                      value={helpMessage}
+                      onChange={(e) => setHelpMessage(e.target.value)}
+                      required
+                      fullWidth
+                      multiline
+                      minRows={4}
+                      placeholder="Describe your question or issue..."
+                      disabled={helpLoading}
+                    />
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      disabled={helpLoading || !helpSubject.trim() || !helpMessage.trim()}
+                      sx={{ alignSelf: 'flex-start' }}
+                    >
+                      {helpLoading ? 'Sending...' : 'Send message'}
+                    </Button>
+                  </Box>
                 </Box>
               </CardContent>
             </Card>

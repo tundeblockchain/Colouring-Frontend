@@ -20,6 +20,7 @@ import { ChoosePlan } from './screens/ChoosePlan'
 import { AddOneTimeCredits } from './screens/AddOneTimeCredits'
 import { Terms } from './screens/Terms'
 import { Privacy } from './screens/Privacy'
+import { Faq } from './screens/Faq'
 
 // Components
 import { AuthHandler } from './components/AuthHandler'
@@ -80,6 +81,7 @@ function App() {
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/privacy" element={<Privacy />} />
+      <Route path="/faq" element={<Faq />} />
       <Route
         path="/dashboard"
         element={
