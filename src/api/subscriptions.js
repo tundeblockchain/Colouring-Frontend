@@ -93,6 +93,38 @@ export const createCreditPackCheckout = async (userId, options) => {
 }
 
 /**
+ * Change plan for a user with an active subscription (prorated charge on saved payment method).
+ * Use when subscriptionStatus is 'active' or 'trialing' and stripeSubscriptionId exists.
+ *
+ * @param {string} userId - Current user id
+ * @param {{ plan: string, interval: 'month' | 'year' }} options
+ * @returns {{ success: boolean, error?: string, status?: number, data?: object }}
+ */
+export const changePlan = async (userId, options) => {
+  const { plan, interval } = options
+  if (!userId || !plan) {
+    return { success: false, error: 'User and plan are required.' }
+  }
+  const result = await apiRequest('/subscriptions/change-plan', {
+    method: 'POST',
+    userId,
+    body: {
+      plan: plan.toLowerCase(),
+      interval: interval || 'month',
+    },
+  })
+  if (result.success) {
+    return { success: true }
+  }
+  return {
+    success: false,
+    error: result.data?.error || result.error || 'Change plan failed',
+    status: result.status,
+    data: result.data,
+  }
+}
+
+/**
  * Cancel the current user's subscription at period end.
  * Backend should call Stripe to set cancel_at_period_end.
  *

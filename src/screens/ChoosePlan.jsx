@@ -30,7 +30,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useUser } from '../hooks/useUser'
 import { useSubscriptionPlans } from '../hooks/useSubscriptionPlans'
 import { useToast } from '../contexts/ToastContext'
-import { createCheckoutSession } from '../api/subscriptions'
+import { createCheckoutSession, changePlan } from '../api/subscriptions'
 
 /** Format Stripe price (amount in cents) with currency */
 const formatPrice = (amountInCents, currency = 'usd') => {
@@ -104,13 +104,17 @@ export const ChoosePlan = () => {
   }, [])
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { data: userProfile } = useUser(user?.uid)
+  const { data: userProfile, refetch: refetchUser } = useUser(user?.uid)
   const { data: plansData, isLoading: plansLoading } = useSubscriptionPlans()
   const apiPlans = plansData?.plans ?? []
   const { showToast } = useToast()
   const [interval, setInterval] = useState('month')
   const [selectedPlanId, setSelectedPlanId] = useState(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
+
+  const hasActiveSubscription =
+    userProfile?.stripeSubscriptionId &&
+    (userProfile?.subscriptionStatus === 'active' || userProfile?.subscriptionStatus === 'trialing')
 
   const plans = useMemo(() => {
     if (apiPlans?.length) return apiPlans
@@ -134,15 +138,59 @@ export const ChoosePlan = () => {
       return
     }
     setCheckoutLoading(true)
-    const { success, url, error } = await createCheckoutSession(user.uid, {
-      plan: selectedPlanId,
-      interval,
-    })
-    setCheckoutLoading(false)
-    if (success && url) {
-      window.location.href = url
-    } else {
-      showToast(error || 'Could not start checkout.', 'error')
+    try {
+      if (hasActiveSubscription) {
+        const res = await changePlan(user.uid, {
+          plan: selectedPlanId,
+          interval,
+        })
+        setCheckoutLoading(false)
+        if (res.success) {
+          await refetchUser()
+          showToast('Your plan has been updated. You were charged a prorated amount on your saved payment method.')
+          return
+        }
+        if (res.status === 400) {
+          const errMsg = (res.data?.error || res.error || '').toLowerCase()
+          if (errMsg.includes('no active subscription')) {
+            setCheckoutLoading(true)
+            const { success, url, error } = await createCheckoutSession(user.uid, {
+              plan: selectedPlanId,
+              interval,
+            })
+            setCheckoutLoading(false)
+            if (success && url) {
+              window.location.href = url
+            } else {
+              showToast(error || 'Could not start checkout.', 'error')
+            }
+            return
+          }
+          if (errMsg.includes('already on') || errMsg.includes('already subscribed')) {
+            showToast('You are already on this plan. No change needed.', 'info')
+            return
+          }
+          if (errMsg.includes('subscription is not active') || errMsg.includes('not active')) {
+            showToast('Your subscription is not active. Please re-subscribe below.', 'error')
+            return
+          }
+        }
+        showToast(res.error || 'Change plan failed.', 'error')
+      } else {
+        const { success, url, error } = await createCheckoutSession(user.uid, {
+          plan: selectedPlanId,
+          interval,
+        })
+        setCheckoutLoading(false)
+        if (success && url) {
+          window.location.href = url
+        } else {
+          showToast(error || 'Could not start checkout.', 'error')
+        }
+      }
+    } catch (e) {
+      setCheckoutLoading(false)
+      showToast(e?.message || 'Something went wrong.', 'error')
     }
   }
 
@@ -372,7 +420,9 @@ export const ChoosePlan = () => {
           }}
         >
           <Typography variant="body1" color="text.secondary">
-            Ready to subscribe? You&apos;ll be redirected to Stripe for secure payment.
+            {hasActiveSubscription
+            ? 'Change your plan below. You\'ll be charged a prorated amount on your saved payment method.'
+            : 'Ready to subscribe? You\'ll be redirected to Stripe for secure payment.'}
           </Typography>
           <Button
             variant="contained"
@@ -385,7 +435,13 @@ export const ChoosePlan = () => {
               '&:hover': { backgroundColor: 'secondary.dark' },
             }}
           >
-            {checkoutLoading ? 'Redirecting…' : 'Proceed to Payment'}
+            {checkoutLoading
+              ? hasActiveSubscription
+                ? 'Updating plan…'
+                : 'Redirecting…'
+              : hasActiveSubscription
+                ? 'Update plan'
+                : 'Proceed to Payment'}
           </Button>
         </Box>
 

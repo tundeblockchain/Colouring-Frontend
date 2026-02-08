@@ -14,7 +14,8 @@ export class User {
     this.rolloverCredits = data.rolloverCredits ?? 0 // unused credits rolled over
     this.createdAt = data.createdAt || new Date().toISOString()
     this.plan = data.plan || 'free' // free, starter, hobby, artist, business
-    this.subscriptionStatus = data.subscriptionStatus ?? null // active, canceled, past_due, etc.
+    this.subscriptionStatus = data.subscriptionStatus ?? null // active, canceled, past_due, trialing, etc.
+    this.stripeSubscriptionId = data.stripeSubscriptionId ?? data.stripe_subscription_id ?? null
     this.currentPeriodEnd = data.currentPeriodEnd ?? null // ISO date when current period ends
     this.cancelAtPeriodEnd = data.cancelAtPeriodEnd ?? false
   }
