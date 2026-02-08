@@ -19,7 +19,6 @@ import {
   Slider,
   Alert,
   CircularProgress,
-  Tooltip,
 } from '@mui/material'
 import {
   ExpandMore,
@@ -56,18 +55,9 @@ export const CreateColoringPage = () => {
   const planKey = (userProfile?.plan || '').toLowerCase()
   const canUsePhoto = ['hobby', 'artist', 'business'].includes(planKey)
 
-  // Redirect users without photo access (Free/Starter) away from photo tab if accessed via URL
-  useEffect(() => {
-    if (type === 'photo' && !canUsePhoto) {
-      navigate('/create/text', { replace: true })
-    }
-  }, [type, canUsePhoto, navigate])
-
   const initialTab = tabTypes[type] || 'text'
-  const effectiveInitialTab = (initialTab === 'photo' && !canUsePhoto) ? 'text' : initialTab
-  const [activeTab, setActiveTab] = useState(
-    effectiveInitialTab === 'drawing' ? 'text' : effectiveInitialTab
-  )
+  const effectiveInitialTab = initialTab === 'drawing' ? 'text' : initialTab
+  const [activeTab, setActiveTab] = useState(effectiveInitialTab)
   const [prompt, setPrompt] = useState(effectiveInitialTab === 'photo' ? 'simple lines' : 'fancy anime footballer')
   const [improveLoading, setImproveLoading] = useState(false)
   const [quality, setQuality] = useState('fast')
@@ -81,12 +71,6 @@ export const CreateColoringPage = () => {
   const [wordArtStyle, setWordArtStyle] = useState('bubble')
 
   const handleTabChange = (event, newValue) => {
-    // Photo tab only for Hobby, Artist and Business plans
-    if (newValue === 'photo' && !canUsePhoto) {
-      alert('Photo generation is available on Hobby, Artist and Business plans. Please upgrade your plan to use this feature.')
-      return
-    }
-    
     if (photoPreviewUrl) {
       URL.revokeObjectURL(photoPreviewUrl)
       setPhotoPreviewUrl(null)
@@ -414,15 +398,7 @@ export const CreateColoringPage = () => {
           <Tabs value={activeTab} onChange={handleTabChange} sx={{ marginBottom: 3 }}>
             <Tab label="Text Prompt" value="text" />
             <Tab label="Word Art" value="wordArt" />
-            {!canUsePhoto ? (
-              <Tooltip title="Upgrade to Hobby, Artist or Business to unlock photo coloring pages" placement="top">
-                <span style={{ display: 'inline-block' }}>
-                  <Tab label="Photo" value="photo" disabled sx={{ opacity: 0.5 }} />
-                </span>
-              </Tooltip>
-            ) : (
-              <Tab label="Photo" value="photo" />
-            )}
+            <Tab label="Photo" value="photo" />
           </Tabs>
 
           <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, marginBottom: 1 }}>
@@ -442,7 +418,7 @@ export const CreateColoringPage = () => {
 
           {activeTab === 'photo' && (
             <Box sx={{ marginBottom: 3 }}>
-              {!canUsePhoto ? (
+              {!canUsePhoto && (
                 <Alert severity="info" sx={{ marginBottom: 2 }}>
                   Photo generation is available on Hobby, Artist and Business plans. Upgrade to unlock this feature!
                   <Button
@@ -454,62 +430,58 @@ export const CreateColoringPage = () => {
                     Upgrade Now!
                   </Button>
                 </Alert>
-              ) : (
-                <>
-                  <Typography variant="body2" sx={{ marginBottom: 1, fontWeight: 500 }}>
-                    Upload a photo
-                  </Typography>
-                </>
               )}
-              {canUsePhoto && (
-                <>
-                  <Button
-                    variant="outlined"
-                    component="label"
-                    fullWidth
-                    sx={{ mb: 2, py: 2, borderStyle: 'dashed' }}
-                  >
-                    {photoFile ? photoFile.name : 'Choose image (JPG, PNG, etc.)'}
-                    <input
-                      type="file"
-                      hidden
-                      accept="image/*"
-                      onChange={handlePhotoFileChange}
-                    />
-                  </Button>
-                  {photoPreviewUrl && (
-                    <Box
-                      sx={{
-                        width: '100%',
-                        maxHeight: 200,
-                        borderRadius: 2,
-                        overflow: 'hidden',
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        mb: 2,
-                      }}
-                    >
-                      <Box
-                        component="img"
-                        src={photoPreviewUrl}
-                        alt="Preview"
-                        sx={{ width: '100%', height: 'auto', maxHeight: 200, objectFit: 'contain', display: 'block' }}
-                      />
-                    </Box>
-                  )}
-                  <Typography variant="body2" sx={{ marginBottom: 1, fontWeight: 500, color: 'text.secondary' }}>
-                    Style hint (optional)
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="e.g. cartoon style, simple lines"
-                    sx={{ marginBottom: 1 }}
+              <Typography variant="body2" sx={{ marginBottom: 1, fontWeight: 500 }}>
+                Upload a photo
+              </Typography>
+              <Button
+                variant="outlined"
+                component="label"
+                fullWidth
+                disabled={!canUsePhoto}
+                sx={{ mb: 2, py: 2, borderStyle: 'dashed', ...(!canUsePhoto && { opacity: 0.7 }) }}
+              >
+                {photoFile ? photoFile.name : 'Choose image (JPG, PNG, etc.)'}
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  onChange={handlePhotoFileChange}
+                  disabled={!canUsePhoto}
+                />
+              </Button>
+              {photoPreviewUrl && canUsePhoto && (
+                <Box
+                  sx={{
+                    width: '100%',
+                    maxHeight: 200,
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    mb: 2,
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src={photoPreviewUrl}
+                    alt="Preview"
+                    sx={{ width: '100%', height: 'auto', maxHeight: 200, objectFit: 'contain', display: 'block' }}
                   />
-                </>
+                </Box>
               )}
+              <Typography variant="body2" sx={{ marginBottom: 1, fontWeight: 500, color: 'text.secondary' }}>
+                Style hint (optional)
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="e.g. cartoon style, simple lines"
+                sx={{ marginBottom: 1 }}
+                disabled={!canUsePhoto}
+              />
             </Box>
           )}
 
@@ -705,6 +677,7 @@ export const CreateColoringPage = () => {
             onClick={handleGenerate}
             disabled={
               generateMutation.isPending ||
+              (activeTab === 'photo' && !canUsePhoto) ||
               (activeTab === 'photo' ? !photoFile : !prompt.trim())
             }
             sx={{
