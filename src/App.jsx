@@ -21,6 +21,7 @@ import { AddOneTimeCredits } from './screens/AddOneTimeCredits'
 import { Terms } from './screens/Terms'
 import { Privacy } from './screens/Privacy'
 import { Faq } from './screens/Faq'
+import { NotFound } from './screens/NotFound'
 
 // Components
 import { AuthHandler } from './components/AuthHandler'
@@ -179,6 +180,7 @@ function App() {
         }
       />
       <Route path="/" element={<LandingOrDashboard />} />
+      <Route path="*" element={<NotFound />} />
       </Routes>
     </ToastProvider>
   )
