@@ -26,6 +26,7 @@ import { NotFound } from './screens/NotFound'
 // Components
 import { AuthHandler } from './components/AuthHandler'
 import { ToastProvider } from './contexts/ToastContext'
+import { SEO } from './components/SEO'
 
 // Track page views for GA4 on route change
 const PageViewTracker = () => {
@@ -74,6 +75,7 @@ const LandingOrDashboard = () => {
 function App() {
   return (
     <ToastProvider>
+      <SEO />
       <AuthHandler />
       <PageViewTracker />
       <Routes>
