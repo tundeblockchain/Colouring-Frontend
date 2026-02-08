@@ -19,6 +19,7 @@ import {
   Slider,
   Alert,
   CircularProgress,
+  Tooltip,
 } from '@mui/material'
 import {
   ExpandMore,
@@ -413,12 +414,15 @@ export const CreateColoringPage = () => {
           <Tabs value={activeTab} onChange={handleTabChange} sx={{ marginBottom: 3 }}>
             <Tab label="Text Prompt" value="text" />
             <Tab label="Word Art" value="wordArt" />
-            <Tab 
-              label="Photo" 
-              value="photo" 
-              disabled={!canUsePhoto}
-              sx={!canUsePhoto ? { opacity: 0.5 } : {}}
-            />
+            {!canUsePhoto ? (
+              <Tooltip title="Upgrade to Hobby, Artist or Business to unlock photo coloring pages" placement="top">
+                <span style={{ display: 'inline-block' }}>
+                  <Tab label="Photo" value="photo" disabled sx={{ opacity: 0.5 }} />
+                </span>
+              </Tooltip>
+            ) : (
+              <Tab label="Photo" value="photo" />
+            )}
           </Tabs>
 
           <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, marginBottom: 1 }}>
