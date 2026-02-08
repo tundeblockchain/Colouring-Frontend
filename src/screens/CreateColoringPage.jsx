@@ -129,12 +129,12 @@ export const CreateColoringPage = () => {
     // Photo and Front Cover only for Hobby, Artist and Business plans
     if (activeTab === 'photo' && !canUsePhoto) {
       alert('Photo generation is available on Hobby, Artist and Business plans. Please upgrade your plan to use this feature.')
-      navigate('/profile')
+      navigate('/choose-plan')
       return
     }
     if (activeTab === 'frontCover' && !canUseFrontCover) {
       alert('Front cover generation is available on Hobby, Artist and Business plans. Please upgrade your plan to use this feature.')
-      navigate('/profile')
+      navigate('/choose-plan')
       return
     }
 
@@ -449,7 +449,7 @@ export const CreateColoringPage = () => {
                     size="small"
                     variant="contained"
                     sx={{ marginLeft: 2, marginTop: 1.5 }}
-                    onClick={() => navigate('/profile')}
+                    onClick={() => navigate('/choose-plan')}
                   >
                     Upgrade Now!
                   </Button>
@@ -544,7 +544,7 @@ export const CreateColoringPage = () => {
                   size="small"
                   variant="contained"
                   sx={{ marginLeft: 2, marginTop: 1.5 }}
-                  onClick={() => navigate('/profile')}
+                  onClick={() => navigate('/choose-plan')}
                 >
                   Upgrade Now!
                 </Button>
@@ -730,7 +730,7 @@ export const CreateColoringPage = () => {
                       size="small"
                       variant="contained"
                       sx={{ marginLeft: 2 }}
-                      onClick={() => navigate('/profile')}
+                      onClick={() => navigate('/choose-plan')}
                     >
                       Upgrade Now!
                     </Button>
