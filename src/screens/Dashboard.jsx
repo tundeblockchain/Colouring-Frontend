@@ -1,4 +1,4 @@
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import {
   Box,
   Typography,
@@ -37,16 +37,10 @@ const featureCards = [
 
 export const Dashboard = () => {
   const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const forceRunTour = searchParams.get('tour') === '1'
 
   useOnboardingTour({
     runOnMount: true,
     delay: 600,
-    forceRun: forceRunTour,
-    onStart: forceRunTour
-      ? () => setSearchParams({}, { replace: true })
-      : undefined,
   })
 
   return (

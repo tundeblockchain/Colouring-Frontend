@@ -377,7 +377,7 @@ export const Profile = () => {
                   </Button>
                   <Button
                     variant="outlined"
-                    onClick={() => navigate('/dashboard?tour=1')}
+                    onClick={() => navigate('/dashboard')}
                     sx={{
                       alignSelf: 'flex-start',
                       borderColor: 'primary.main',
@@ -389,7 +389,7 @@ export const Profile = () => {
                   </Button>
                   <Button
                     variant="outlined"
-                    onClick={() => navigate('/create/text?tour=1')}
+                    onClick={() => navigate('/create/text')}
                     sx={{
                       alignSelf: 'flex-start',
                       borderColor: 'primary.main',

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import {
   Box,
   Typography,
@@ -223,13 +223,11 @@ export const CreateColoringPage = () => {
   }
 
   const canGenerateMultiple = !isFreePlan
-  const forceRunCreateTour = searchParams.get('tour') === '1'
   const showCreateTour = activeTab === 'text' || activeTab === 'wordArt'
 
   useCreateScreenTour({
     runOnMount: showCreateTour,
     delay: 700,
-    forceRun: forceRunCreateTour,
   })
 
   const aspectRatioMap = { '1:1': '1', '2:3': '2/3', '3:2': '3/2' }
