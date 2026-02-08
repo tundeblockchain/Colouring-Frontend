@@ -23,7 +23,6 @@ import {
 import {
   ExpandMore,
   AutoAwesome,
-  Shuffle,
 } from '@mui/icons-material'
 import { MainLayout } from '../components/Layout/MainLayout'
 import { useAuth } from '../hooks/useAuth'
@@ -38,6 +37,7 @@ import { trackCreationType } from '../utils/analytics'
 const tabTypes = {
   text: 'text',
   'word-art': 'wordArt',
+  'front-cover': 'frontCover',
   drawing: 'drawing',
   photo: 'photo',
 }
@@ -58,7 +58,13 @@ export const CreateColoringPage = () => {
   const initialTab = tabTypes[type] || 'text'
   const effectiveInitialTab = initialTab === 'drawing' ? 'text' : initialTab
   const [activeTab, setActiveTab] = useState(effectiveInitialTab)
-  const [prompt, setPrompt] = useState(effectiveInitialTab === 'photo' ? 'simple lines' : 'fancy anime footballer')
+  const [prompt, setPrompt] = useState(
+    effectiveInitialTab === 'photo'
+      ? 'simple lines'
+      : effectiveInitialTab === 'frontCover'
+        ? 'magical forest colouring book cover'
+        : 'fancy anime footballer'
+  )
   const [improveLoading, setImproveLoading] = useState(false)
   const [quality, setQuality] = useState('fast')
   const [dimensions, setDimensions] = useState('2:3')
@@ -77,6 +83,7 @@ export const CreateColoringPage = () => {
     }
     setPhotoFile(null)
     if (newValue === 'photo') setPrompt('simple lines')
+    if (newValue === 'frontCover') setPrompt('magical forest colouring book cover')
     setActiveTab(newValue)
     const tabPath = Object.keys(tabTypes).find(key => tabTypes[key] === newValue)
     navigate(`/create/${tabPath}`)
@@ -144,7 +151,7 @@ export const CreateColoringPage = () => {
       const result = await generateMutation.mutateAsync({
         userId: user.uid,
         prompt: prompt.trim(),
-        title: prompt.trim() || (activeTab === 'photo' ? 'Photo coloring page' : ''),
+        title: prompt.trim() || (activeTab === 'photo' ? 'Photo coloring page' : activeTab === 'frontCover' ? 'Front cover' : ''),
         type: activeTab,
         quality,
         dimensions,
@@ -261,7 +268,11 @@ export const CreateColoringPage = () => {
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                 <CircularProgress sx={{ color: 'primary.main' }} />
                 <Typography variant="body2" color="text.secondary">
-                  Creating {numImages > 1 ? `${numImages} coloring pages` : 'your coloring page'}...
+                  Creating {numImages > 1
+                  ? `${numImages} ${activeTab === 'frontCover' ? 'front covers' : 'coloring pages'}`
+                  : activeTab === 'frontCover'
+                    ? 'your front cover'
+                    : 'your coloring page'}...
                 </Typography>
               </Box>
             ) : hasPreviews ? (
@@ -357,7 +368,7 @@ export const CreateColoringPage = () => {
                   px: 2,
                 }}
               >
-                Preview • Your coloring page{numImages > 1 ? 's' : ''} will appear here
+                Preview • Your {activeTab === 'frontCover' ? 'front cover' : 'coloring page'}{numImages > 1 ? 's' : ''} will appear here
               </Typography>
             )}
           </Box>
@@ -398,22 +409,27 @@ export const CreateColoringPage = () => {
           <Tabs value={activeTab} onChange={handleTabChange} sx={{ marginBottom: 3 }}>
             <Tab label="Text Prompt" value="text" />
             <Tab label="Word Art" value="wordArt" />
+            <Tab label="Front Cover" value="frontCover" />
             <Tab label="Photo" value="photo" />
           </Tabs>
 
           <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, marginBottom: 1 }}>
             {activeTab === 'wordArt'
               ? 'Create a coloring page with words, names, and numbers'
-              : activeTab === 'photo'
-                ? 'Turn your photo into a coloring page'
-                : 'Create a coloring page from a text prompt'}
+              : activeTab === 'frontCover'
+                ? 'Create a front cover for your colouring book'
+                : activeTab === 'photo'
+                  ? 'Turn your photo into a coloring page'
+                  : 'Create a coloring page from a text prompt'}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ marginBottom: 3 }}>
             {activeTab === 'wordArt'
               ? 'Enter words, a name, or numbers to turn them into a coloring page.'
-              : activeTab === 'photo'
-                ? 'Upload a photo and we\'ll turn it into a coloring page.'
-                : 'Describe your coloring page in natural language. Don\'t stress about your prompt, our AI will automatically improve it for you.'}
+              : activeTab === 'frontCover'
+                ? 'Describe the design for your colouring book front cover. Our AI will generate a printable cover.'
+                : activeTab === 'photo'
+                  ? 'Upload a photo and we\'ll turn it into a coloring page.'
+                  : 'Describe your coloring page in natural language. Don\'t stress about your prompt, our AI will automatically improve it for you.'}
           </Typography>
 
           {activeTab === 'photo' && (
@@ -514,7 +530,11 @@ export const CreateColoringPage = () => {
           {activeTab !== 'photo' && (
           <Box sx={{ marginBottom: 3 }} data-tour="tour-text-prompts">
             <Typography variant="body2" sx={{ marginBottom: 1, fontWeight: 500 }}>
-              {activeTab === 'wordArt' ? 'Words, name, or numbers.' : 'Describe your coloring page.'}
+              {activeTab === 'wordArt'
+                ? 'Words, name, or numbers.'
+                : activeTab === 'frontCover'
+                  ? 'Describe your front cover.'
+                  : 'Describe your coloring page.'}
             </Typography>
             <TextField
               fullWidth
@@ -522,26 +542,37 @@ export const CreateColoringPage = () => {
               rows={activeTab === 'wordArt' ? 2 : 4}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder={activeTab === 'wordArt' ? 'e.g. Happy Birthday, Emma, 2024' : 'alien mother ship, crashing at beach.'}
+              placeholder={
+                activeTab === 'wordArt'
+                  ? 'e.g. Happy Birthday, Emma, 2024'
+                  : activeTab === 'frontCover'
+                    ? 'e.g. Magical unicorns and rainbows, kids colouring book'
+                    : 'alien mother ship, crashing at beach.'
+              }
               sx={{ marginBottom: 1 }}
             />
             <Box sx={{ display: 'flex', gap: 1, marginBottom: 1 }}>
               <Button
                 data-tour="tour-improve-button"
                 size="small"
+                variant="contained"
                 startIcon={improveLoading ? <CircularProgress size={16} color="inherit" /> : <AutoAwesome />}
-                sx={{ color: 'text.secondary' }}
                 onClick={handleImprove}
                 disabled={improveLoading || !prompt.trim()}
+                sx={{
+                  color: '#fff',
+                  borderRadius: 4,
+                  background: 'linear-gradient(90deg, #38B2AC 0%, #6EE7B7 100%)',
+                  '&:hover': {
+                    background: 'linear-gradient(90deg, #2C9A94 0%, #5BD4A8 100%)',
+                  },
+                  '&.Mui-disabled': {
+                    color: 'rgba(255,255,255,0.7)',
+                    background: 'linear-gradient(90deg, #38B2AC 0%, #6EE7B7 100%)',
+                  },
+                }}
               >
                 Improve
-              </Button>
-              <Button
-                size="small"
-                startIcon={<Shuffle />}
-                sx={{ color: 'text.secondary' }}
-              >
-                Shuffle
               </Button>
             </Box>
           </Box>
@@ -690,6 +721,8 @@ export const CreateColoringPage = () => {
           >
             {generateMutation.isPending ? (
               <CircularProgress size={24} color="inherit" />
+            ) : activeTab === 'frontCover' ? (
+              'Make my front cover!'
             ) : (
               'Make my coloring sheet!'
             )}

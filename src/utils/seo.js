@@ -118,13 +118,14 @@ export function getSeoForPath(pathname) {
 
   if (staticRoutes[path]) return staticRoutes[path]
 
-  // Create: /create/text, /create/word-art, /create/photo
-  const createMatch = path.match(/^\/create\/(text|word-art|photo|drawing)$/)
+  // Create: /create/text, /create/word-art, /create/front-cover, /create/photo
+  const createMatch = path.match(/^\/create\/(text|word-art|front-cover|photo|drawing)$/)
   if (createMatch) {
     const type = createMatch[1]
     const typeLabels = {
       text: 'Text prompt',
       'word-art': 'Word art',
+      'front-cover': 'Front cover',
       photo: 'Photo',
       drawing: 'Drawing',
     }
