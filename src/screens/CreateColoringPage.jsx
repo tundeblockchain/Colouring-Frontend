@@ -424,7 +424,7 @@ export const CreateColoringPage = () => {
                   <Button
                     size="small"
                     variant="contained"
-                    sx={{ marginLeft: 2 }}
+                    sx={{ marginLeft: 2, marginTop: 1.5 }}
                     onClick={() => navigate('/profile')}
                   >
                     Upgrade Now!
