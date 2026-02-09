@@ -1,8 +1,11 @@
 /**
- * Google Analytics (GA4) integration for tracking user behaviour, ads and marketing.
- * Uses gtag.js; measurement ID from VITE_GA_MEASUREMENT_ID.
- * Respects cookie consent: default denied, then granted/denied via consent banner.
+ * Google Analytics (GA4) + Firebase Analytics integration.
+ * Uses gtag.js for GA4 and Firebase Analytics SDK for Firebase Console.
+ * Measurement ID from VITE_GA_MEASUREMENT_ID. Respects cookie consent.
  */
+
+import { logEvent } from 'firebase/analytics'
+import { getFirebaseAnalytics, setFirebaseAnalyticsEnabled } from '../api/firebase'
 
 const MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID
 
@@ -19,13 +22,18 @@ export function getCookieConsent() {
   }
 }
 
-/** Save consent and update gtag. Call after user accepts or rejects. */
+/** Save consent and update gtag + Firebase Analytics. Call after user accepts or rejects. */
 export function setCookieConsent(granted) {
   if (typeof window === 'undefined') return
   try {
     localStorage.setItem(COOKIE_CONSENT_KEY, granted ? 'granted' : 'denied')
   } catch {}
   updateGtagConsent(granted)
+  setFirebaseAnalyticsEnabled(granted)
+  if (granted && window.gtag) {
+    // Send current page view so the page where they accepted is recorded
+    pageview(window.location.pathname + window.location.search, document.title)
+  }
 }
 
 /** Push consent state to gtag (Consent Mode v2). Call when gtag is available. */
@@ -43,7 +51,13 @@ function updateGtagConsent(granted) {
  * Safe to call multiple times; only runs if MEASUREMENT_ID is set.
  */
 export function initAnalytics() {
-  if (!MEASUREMENT_ID || typeof window === 'undefined') return
+  if (typeof window === 'undefined') return
+  if (!MEASUREMENT_ID || MEASUREMENT_ID.trim() === '') {
+    if (import.meta.env.DEV) {
+      console.info('[Analytics] VITE_GA_MEASUREMENT_ID not set – analytics disabled. Set it in .env to enable.')
+    }
+    return
+  }
 
   window.dataLayer = window.dataLayer || []
   function gtag(...args) {
@@ -66,13 +80,17 @@ export function initAnalytics() {
   document.head.appendChild(script)
 
   script.onload = () => {
+    const isDev = import.meta.env.DEV
     gtag('config', MEASUREMENT_ID, {
       send_page_view: false, // we send page_view ourselves on route change
       anonymize_ip: true,
+      ...(isDev && { debug_mode: true }), // See events in GA4 DebugView when testing
     })
     // If user had already consented (e.g. previous visit), enable analytics this session
     if (getCookieConsent() === 'granted') {
       updateGtagConsent(true)
+      setFirebaseAnalyticsEnabled(true)
+      pageview(window.location.pathname + window.location.search, document.title)
     }
   }
 }
@@ -83,11 +101,22 @@ export function initAnalytics() {
  * @param {string} [title] - Optional page title
  */
 export function pageview(path, title) {
-  if (!MEASUREMENT_ID || typeof window === 'undefined' || !window.gtag) return
-  window.gtag('config', MEASUREMENT_ID, {
-    page_path: path,
-    page_title: title || document.title,
-  })
+  if (typeof window === 'undefined') return
+  if (MEASUREMENT_ID && window.gtag) {
+    window.gtag('config', MEASUREMENT_ID, {
+      page_path: path,
+      page_title: title || document.title,
+    })
+  }
+  const analytics = getFirebaseAnalytics()
+  if (analytics && getCookieConsent() === 'granted') {
+    try {
+      logEvent(analytics, 'page_view', {
+        page_path: path,
+        page_title: title || document.title,
+      })
+    } catch {}
+  }
 }
 
 /**
@@ -96,8 +125,16 @@ export function pageview(path, title) {
  * @param {Record<string, unknown>} [params] - Event parameters
  */
 export function event(name, params = {}) {
-  if (!MEASUREMENT_ID || typeof window === 'undefined' || !window.gtag) return
-  window.gtag('event', name, params)
+  if (typeof window === 'undefined') return
+  if (MEASUREMENT_ID && window.gtag) {
+    window.gtag('event', name, params)
+  }
+  const analytics = getFirebaseAnalytics()
+  if (analytics && getCookieConsent() === 'granted') {
+    try {
+      logEvent(analytics, name, params)
+    } catch {}
+  }
 }
 
 // --- Marketing / conversion helpers (recommended event names for GA4 & Google Ads) ---
