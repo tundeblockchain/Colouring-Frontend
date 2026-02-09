@@ -27,6 +27,7 @@ import { NotFound } from './screens/NotFound'
 import { AuthHandler } from './components/AuthHandler'
 import { ToastProvider } from './contexts/ToastContext'
 import { SEO } from './components/SEO'
+import { CookieConsentBanner } from './components/CookieConsentBanner'
 
 // Track page views for GA4 on route change
 const PageViewTracker = () => {
@@ -78,6 +79,7 @@ function App() {
       <SEO />
       <AuthHandler />
       <PageViewTracker />
+      <CookieConsentBanner />
       <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />

@@ -1,12 +1,45 @@
 /**
  * Google Analytics (GA4) integration for tracking user behaviour, ads and marketing.
  * Uses gtag.js; measurement ID from VITE_GA_MEASUREMENT_ID.
+ * Respects cookie consent: default denied, then granted/denied via consent banner.
  */
 
 const MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID
 
+export const COOKIE_CONSENT_KEY = 'cookie_consent'
+
+/** Get stored consent: 'granted' | 'denied' | null (not set). */
+export function getCookieConsent() {
+  if (typeof window === 'undefined') return null
+  try {
+    const v = localStorage.getItem(COOKIE_CONSENT_KEY)
+    return v === 'granted' || v === 'denied' ? v : null
+  } catch {
+    return null
+  }
+}
+
+/** Save consent and update gtag. Call after user accepts or rejects. */
+export function setCookieConsent(granted) {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(COOKIE_CONSENT_KEY, granted ? 'granted' : 'denied')
+  } catch {}
+  updateGtagConsent(granted)
+}
+
+/** Push consent state to gtag (Consent Mode v2). Call when gtag is available. */
+function updateGtagConsent(granted) {
+  if (typeof window === 'undefined' || !window.gtag) return
+  window.gtag('consent', 'update', {
+    analytics_storage: granted ? 'granted' : 'denied',
+    ad_storage: granted ? 'granted' : 'denied',
+  })
+}
+
 /**
- * Load the gtag script and initialize GA4.
+ * Load the gtag script and initialize GA4 with consent default denied.
+ * After script load, if user had already consented (localStorage), consent is updated to granted.
  * Safe to call multiple times; only runs if MEASUREMENT_ID is set.
  */
 export function initAnalytics() {
@@ -17,6 +50,13 @@ export function initAnalytics() {
     window.dataLayer.push(args)
   }
   window.gtag = gtag
+
+  // Consent Mode v2: default denied so no analytics cookies until user accepts
+  gtag('consent', 'default', {
+    analytics_storage: 'denied',
+    ad_storage: 'denied',
+    wait_for_update: 500,
+  })
 
   gtag('js', new Date())
 
@@ -30,6 +70,10 @@ export function initAnalytics() {
       send_page_view: false, // we send page_view ourselves on route change
       anonymize_ip: true,
     })
+    // If user had already consented (e.g. previous visit), enable analytics this session
+    if (getCookieConsent() === 'granted') {
+      updateGtagConsent(true)
+    }
   }
 }
 
