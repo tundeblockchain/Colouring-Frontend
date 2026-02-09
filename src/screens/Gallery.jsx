@@ -6,6 +6,7 @@ import { MainLayout } from '../components/Layout/MainLayout'
 import { ColoringPageCard } from '../components/ColoringPageCard'
 import { useToast } from '../contexts/ToastContext'
 import { useAuth } from '../hooks/useAuth'
+import { useUser } from '../hooks/useUser'
 import { useColoringPages, useToggleFavorite, useMoveToFolder } from '../hooks/useColoringPages'
 import { useFolders } from '../hooks/useFolders'
 
@@ -14,9 +15,11 @@ const DRAG_TYPE = 'application/x-coloring-page-id'
 export const Gallery = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { data: userProfile } = useUser(user?.uid)
   const { showToast } = useToast()
   const { data: coloringPages = [], isLoading } = useColoringPages(user?.uid)
   const { data: folders = [] } = useFolders(user?.uid)
+  const canDownloadPdf = ['hobby', 'artist', 'business'].includes((userProfile?.plan || '').toLowerCase())
   const toggleFavoriteMutation = useToggleFavorite()
   const moveToFolderMutation = useMoveToFolder()
   const [searchParams] = useSearchParams()
@@ -211,6 +214,7 @@ export const Gallery = () => {
                 onToggleFavorite={handleToggleFavorite}
                 isFavoritePending={toggleFavoriteMutation.isPending}
                 draggable={folders.length > 0}
+                canDownloadPdf={canDownloadPdf}
               />
             </Grid>
           ))}

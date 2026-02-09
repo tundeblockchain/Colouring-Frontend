@@ -16,9 +16,11 @@ import { useColoringPages, useToggleFavorite } from '../hooks/useColoringPages'
 export const Favorites = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { data: userProfile } = useUser(user?.uid)
   const { showToast } = useToast()
   const { data: coloringPages = [], isLoading } = useColoringPages(user?.uid)
   const toggleFavoriteMutation = useToggleFavorite()
+  const canDownloadPdf = ['hobby', 'artist', 'business'].includes((userProfile?.plan || '').toLowerCase())
 
   const favorites = useMemo(
     () => coloringPages.filter((page) => page.isFavorite),
@@ -98,6 +100,7 @@ export const Favorites = () => {
                 page={page}
                 onToggleFavorite={handleToggleFavorite}
                 isFavoritePending={toggleFavoriteMutation.isPending}
+                canDownloadPdf={canDownloadPdf}
               />
             </Grid>
           ))}

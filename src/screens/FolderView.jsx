@@ -22,6 +22,7 @@ import { ArrowBack, Download, Edit, Delete, Close } from '@mui/icons-material'
 import { MainLayout } from '../components/Layout/MainLayout'
 import { ColoringPageCard } from '../components/ColoringPageCard'
 import { useAuth } from '../hooks/useAuth'
+import { useUser } from '../hooks/useUser'
 import { useFolders, useUpdateFolder, useDeleteFolder } from '../hooks/useFolders'
 import { useColoringPages, useToggleFavorite } from '../hooks/useColoringPages'
 import { useToast } from '../contexts/ToastContext'
@@ -31,7 +32,9 @@ export const FolderView = () => {
   const { folderId } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { data: userProfile } = useUser(user?.uid)
   const { showToast } = useToast()
+  const canDownloadPdf = ['hobby', 'artist', 'business'].includes((userProfile?.plan || '').toLowerCase())
 
   const { data: folders = [], isLoading: foldersLoading } = useFolders(user?.uid)
   const { data: allPages = [], isLoading: pagesLoading } = useColoringPages(user?.uid, {
@@ -84,6 +87,10 @@ export const FolderView = () => {
   const handleDownloadAllAsPdf = async () => {
     handleDownloadMenuClose()
     if (pagesInFolder.length === 0) return
+    if (!canDownloadPdf) {
+      showToast('Download as PDF is available on Hobby, Artist and Business plans. Upgrade to unlock this feature.', 'info')
+      return
+    }
     const items = pagesInFolder.map((p) => ({
       url: p.imageUrl || p.thumbnailUrl,
       title: p.title,
@@ -207,7 +214,13 @@ export const FolderView = () => {
               transformOrigin={{ vertical: 'top', horizontal: 'left' }}
             >
               <MenuItem onClick={handleDownloadAllAsPng}>Download all as PNG (ZIP)</MenuItem>
-              <MenuItem onClick={handleDownloadAllAsPdf}>Download all as PDF</MenuItem>
+              <MenuItem
+                onClick={handleDownloadAllAsPdf}
+                disabled={!canDownloadPdf}
+                sx={!canDownloadPdf ? { opacity: 0.7 } : {}}
+              >
+                Download all as PDF{!canDownloadPdf ? ' (Upgrade required)' : ''}
+              </MenuItem>
             </Menu>
             <Button
               variant="outlined"
@@ -271,6 +284,7 @@ export const FolderView = () => {
                 page={page}
                 onToggleFavorite={handleToggleFavorite}
                 isFavoritePending={toggleFavoriteMutation.isPending}
+                canDownloadPdf={canDownloadPdf}
               />
             </Grid>
           ))}

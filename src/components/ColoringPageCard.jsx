@@ -19,11 +19,14 @@ const iconButtonSx = {
 
 const DRAG_TYPE = 'application/x-coloring-page-id'
 
+const PDF_UPGRADE_MESSAGE = 'Download as PDF is available on Hobby, Artist and Business plans. Upgrade to unlock this feature.'
+
 export const ColoringPageCard = ({
   page,
   onToggleFavorite,
   isFavoritePending,
   draggable: isDraggable = false,
+  canDownloadPdf = true,
 }) => {
   const imageUrl = page.imageUrl || page.thumbnailUrl
   const { showToast } = useToast()
@@ -36,6 +39,10 @@ export const ColoringPageCard = ({
 
   const handleDownload = async (format) => {
     handleDownloadClose()
+    if (format === 'pdf' && !canDownloadPdf) {
+      showToast(PDF_UPGRADE_MESSAGE, 'info')
+      return
+    }
     await downloadImage(imageUrl, page.title, format)
     showToast(`Downloaded as ${format.toUpperCase()}`)
   }
@@ -88,7 +95,13 @@ export const ColoringPageCard = ({
         transformOrigin={{ vertical: 'top', horizontal: 'left' }}
       >
         <MenuItem onClick={() => handleDownload('png')}>Download as PNG</MenuItem>
-        <MenuItem onClick={() => handleDownload('pdf')}>Download as PDF</MenuItem>
+        <MenuItem
+          onClick={() => handleDownload('pdf')}
+          disabled={!canDownloadPdf}
+          sx={!canDownloadPdf ? { opacity: 0.7 } : {}}
+        >
+          Download as PDF{!canDownloadPdf ? ' (Upgrade required)' : ''}
+        </MenuItem>
       </Menu>
       <IconButton
         onClick={() => onToggleFavorite(page.id)}
