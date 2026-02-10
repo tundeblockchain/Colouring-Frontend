@@ -20,23 +20,66 @@ const app = initializeApp(firebaseConfig)
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app)
 
-// Firebase Analytics – initialized in analytics.js when MEASUREMENT_ID is set; collection enabled only after consent
+// Firebase Analytics – initialized lazily; collection enabled only after consent
 let firebaseAnalytics = null
+let initAttempted = false
+
 export function getFirebaseAnalytics() {
   if (firebaseAnalytics) return firebaseAnalytics
   if (typeof window === 'undefined' || !import.meta.env.VITE_GA_MEASUREMENT_ID) return null
+  if (initAttempted) return null // Already tried and failed
+  
+  // Ensure DOM is ready (getAnalytics requires browser environment)
+  if (document.readyState === 'loading') {
+    // Wait for DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', () => {
+      initAttempted = true
+      try {
+        firebaseAnalytics = getAnalytics(app)
+        setAnalyticsCollectionEnabled(firebaseAnalytics, false)
+        if (import.meta.env.DEV) {
+          console.log('[Firebase Analytics] Initialized (collection disabled until consent)')
+        }
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.warn('[Firebase Analytics] Failed to initialize:', err.message)
+        }
+      }
+    })
+    return null
+  }
+  
+  initAttempted = true
   try {
     firebaseAnalytics = getAnalytics(app)
     setAnalyticsCollectionEnabled(firebaseAnalytics, false)
+    if (import.meta.env.DEV) {
+      console.log('[Firebase Analytics] Initialized (collection disabled until consent)')
+    }
     return firebaseAnalytics
-  } catch {
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      console.warn('[Firebase Analytics] Failed to initialize:', err.message)
+      console.warn('[Firebase Analytics] Error details:', err)
+    }
     return null
   }
 }
 
 export function setFirebaseAnalyticsEnabled(enabled) {
   const analytics = getFirebaseAnalytics()
-  if (analytics) setAnalyticsCollectionEnabled(analytics, enabled)
+  if (analytics) {
+    try {
+      setAnalyticsCollectionEnabled(analytics, enabled)
+      if (import.meta.env.DEV) {
+        console.log(`[Firebase Analytics] Collection ${enabled ? 'enabled' : 'disabled'}`)
+      }
+    } catch (err) {
+      if (import.meta.env.DEV) {
+        console.warn('[Firebase Analytics] Failed to set collection enabled:', err.message)
+      }
+    }
+  }
 }
 
 export default app

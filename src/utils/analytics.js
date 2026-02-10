@@ -59,6 +59,16 @@ export function initAnalytics() {
     return
   }
 
+  if (import.meta.env.DEV) {
+    console.log('[Analytics] Initializing GA4 with Measurement ID:', MEASUREMENT_ID)
+  }
+
+  // Initialize Firebase Analytics early (collection disabled until consent)
+  // This ensures it's ready when consent is granted
+  if (MEASUREMENT_ID) {
+    getFirebaseAnalytics()
+  }
+
   window.dataLayer = window.dataLayer || []
   function gtag(...args) {
     window.dataLayer.push(args)
@@ -86,11 +96,23 @@ export function initAnalytics() {
       anonymize_ip: true,
       ...(isDev && { debug_mode: true }), // See events in GA4 DebugView when testing
     })
+    if (isDev) {
+      console.log('[Analytics] GA4 script loaded and configured')
+    }
     // If user had already consented (e.g. previous visit), enable analytics this session
     if (getCookieConsent() === 'granted') {
       updateGtagConsent(true)
       setFirebaseAnalyticsEnabled(true)
       pageview(window.location.pathname + window.location.search, document.title)
+      if (isDev) {
+        console.log('[Analytics] Consent already granted – analytics enabled')
+      }
+    }
+  }
+
+  script.onerror = () => {
+    if (import.meta.env.DEV) {
+      console.error('[Analytics] Failed to load GA4 script')
     }
   }
 }
@@ -102,20 +124,38 @@ export function initAnalytics() {
  */
 export function pageview(path, title) {
   if (typeof window === 'undefined') return
+  const consent = getCookieConsent()
+  const isDev = import.meta.env.DEV
+  
   if (MEASUREMENT_ID && window.gtag) {
     window.gtag('config', MEASUREMENT_ID, {
       page_path: path,
       page_title: title || document.title,
     })
+    if (isDev && consent === 'granted') {
+      console.log('[Analytics] GA4 page_view:', path)
+    }
   }
+  
   const analytics = getFirebaseAnalytics()
-  if (analytics && getCookieConsent() === 'granted') {
+  if (analytics && consent === 'granted') {
     try {
       logEvent(analytics, 'page_view', {
         page_path: path,
         page_title: title || document.title,
       })
-    } catch {}
+      if (isDev) {
+        console.log('[Analytics] Firebase page_view:', path)
+      }
+    } catch (err) {
+      if (isDev) {
+        console.warn('[Analytics] Firebase page_view failed:', err.message)
+      }
+    }
+  } else if (isDev && !analytics) {
+    console.warn('[Analytics] Firebase Analytics not initialized – page_view not sent to Firebase')
+  } else if (isDev && consent !== 'granted') {
+    console.log('[Analytics] Consent not granted – page_view not sent to Firebase')
   }
 }
 
@@ -126,14 +166,28 @@ export function pageview(path, title) {
  */
 export function event(name, params = {}) {
   if (typeof window === 'undefined') return
+  const consent = getCookieConsent()
+  const isDev = import.meta.env.DEV
+  
   if (MEASUREMENT_ID && window.gtag) {
     window.gtag('event', name, params)
+    if (isDev && consent === 'granted') {
+      console.log('[Analytics] GA4 event:', name, params)
+    }
   }
+  
   const analytics = getFirebaseAnalytics()
-  if (analytics && getCookieConsent() === 'granted') {
+  if (analytics && consent === 'granted') {
     try {
       logEvent(analytics, name, params)
-    } catch {}
+      if (isDev) {
+        console.log('[Analytics] Firebase event:', name, params)
+      }
+    } catch (err) {
+      if (isDev) {
+        console.warn('[Analytics] Firebase event failed:', name, err.message)
+      }
+    }
   }
 }
 
@@ -211,4 +265,29 @@ export function trackDownload(format, count = 1) {
 /** Check if analytics is enabled (measurement ID set). */
 export function isAnalyticsEnabled() {
   return Boolean(MEASUREMENT_ID)
+}
+
+/** Debug helper: test if analytics is working. Call in browser console. */
+export function testAnalytics() {
+  if (typeof window === 'undefined') {
+    console.log('Not in browser')
+    return
+  }
+  console.log('=== Analytics Debug ===')
+  console.log('Measurement ID:', MEASUREMENT_ID || 'NOT SET')
+  console.log('Consent:', getCookieConsent() || 'NOT SET')
+  console.log('gtag available:', Boolean(window.gtag))
+  console.log('Firebase Analytics:', getFirebaseAnalytics() ? 'Initialized' : 'Not initialized')
+  console.log('dataLayer:', window.dataLayer?.length || 0, 'items')
+  if (window.gtag) {
+    console.log('Testing event...')
+    event('test_event', { test: true })
+    console.log('Event sent. Check GA4 DebugView or Network tab for requests.')
+  }
+}
+
+// Expose test function globally in dev mode for easy debugging
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  window.testAnalytics = testAnalytics
+  console.log('[Analytics] Dev mode: Call window.testAnalytics() to debug')
 }
