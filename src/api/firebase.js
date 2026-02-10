@@ -37,14 +37,7 @@ export function getFirebaseAnalytics() {
       try {
         firebaseAnalytics = getAnalytics(app)
         setAnalyticsCollectionEnabled(firebaseAnalytics, false)
-        if (import.meta.env.DEV) {
-          console.log('[Firebase Analytics] Initialized (collection disabled until consent)')
-        }
-      } catch (err) {
-        if (import.meta.env.DEV) {
-          console.warn('[Firebase Analytics] Failed to initialize:', err.message)
-        }
-      }
+      } catch {}
     })
     return null
   }
@@ -53,15 +46,8 @@ export function getFirebaseAnalytics() {
   try {
     firebaseAnalytics = getAnalytics(app)
     setAnalyticsCollectionEnabled(firebaseAnalytics, false)
-    if (import.meta.env.DEV) {
-      console.log('[Firebase Analytics] Initialized (collection disabled until consent)')
-    }
     return firebaseAnalytics
-  } catch (err) {
-    if (import.meta.env.DEV) {
-      console.warn('[Firebase Analytics] Failed to initialize:', err.message)
-      console.warn('[Firebase Analytics] Error details:', err)
-    }
+  } catch {
     return null
   }
 }
@@ -71,14 +57,7 @@ export function setFirebaseAnalyticsEnabled(enabled) {
   if (analytics) {
     try {
       setAnalyticsCollectionEnabled(analytics, enabled)
-      if (import.meta.env.DEV) {
-        console.log(`[Firebase Analytics] Collection ${enabled ? 'enabled' : 'disabled'}`)
-      }
-    } catch (err) {
-      if (import.meta.env.DEV) {
-        console.warn('[Firebase Analytics] Failed to set collection enabled:', err.message)
-      }
-    }
+    } catch {}
   }
 }
 
