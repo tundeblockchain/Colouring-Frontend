@@ -42,6 +42,15 @@ const tabTypes = {
   photo: 'photo',
 }
 
+function getErrorMessage(msg) {
+  if (!msg || typeof msg !== 'string') return 'Failed to generate coloring page'
+  const lower = msg.toLowerCase()
+  if (lower.includes('content filter') || lower.includes('blocked')) {
+    return `${msg} Try rephrasing your prompt or using different words.`
+  }
+  return msg
+}
+
 export const CreateColoringPage = () => {
   const { type } = useParams()
   const navigate = useNavigate()
@@ -208,7 +217,7 @@ export const CreateColoringPage = () => {
         if (result.status === 402) {
           alert('Insufficient credits. Please upgrade your plan.')
         } else {
-          alert(errorMessage)
+          alert(getErrorMessage(errorMessage))
         }
       }
     } catch (error) {
@@ -217,7 +226,7 @@ export const CreateColoringPage = () => {
       if (error.status === 402) {
         alert('Insufficient credits. Please upgrade your plan.')
       } else {
-        alert(errorMessage)
+        alert(getErrorMessage(errorMessage))
       }
     }
   }
