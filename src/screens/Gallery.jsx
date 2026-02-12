@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Box, Typography, Grid, Chip, Button } from '@mui/material'
-import { Folder as FolderIcon, Close } from '@mui/icons-material'
+import { Box, Typography, Grid, Chip, Button, Menu, MenuItem, ListItemIcon } from '@mui/material'
+import { Folder as FolderIcon, Close, DriveFileMove } from '@mui/icons-material'
 import { MainLayout } from '../components/Layout/MainLayout'
 import { ColoringPageCard } from '../components/ColoringPageCard'
 import { useToast } from '../contexts/ToastContext'
@@ -37,6 +37,7 @@ export const Gallery = () => {
 
   const [dragOverFolderId, setDragOverFolderId] = useState(null)
   const [selectedIds, setSelectedIds] = useState(new Set())
+  const [moveMenuAnchor, setMoveMenuAnchor] = useState(null)
 
   const handleSelectPage = useCallback((pageId) => {
     setSelectedIds((prev) => {
@@ -72,20 +73,7 @@ export const Gallery = () => {
     setDragOverFolderId(null)
   }
 
-  const handleFolderDrop = async (e, folderId) => {
-    e.preventDefault()
-    setDragOverFolderId(null)
-    let pageIds = []
-    const idsData = e.dataTransfer.getData(DRAG_TYPE_IDS)
-    const singleId = e.dataTransfer.getData(DRAG_TYPE)
-    if (idsData) {
-      try {
-        pageIds = JSON.parse(idsData)
-      } catch {
-        pageIds = []
-      }
-    }
-    if (pageIds.length === 0 && singleId) pageIds = [singleId]
+  const movePagesToFolder = async (pageIds, folderId) => {
     if (pageIds.length === 0 || !user?.uid) return
     try {
       for (const pageId of pageIds) {
@@ -96,6 +84,7 @@ export const Gallery = () => {
         })
       }
       setSelectedIds(new Set())
+      setMoveMenuAnchor(null)
       if (folderId) {
         const folder = folders.find((f) => f.id === folderId)
         showToast(
@@ -111,6 +100,28 @@ export const Gallery = () => {
     } catch {
       showToast('Failed to move to folder', 'error')
     }
+  }
+
+  const handleFolderDrop = async (e, folderId) => {
+    e.preventDefault()
+    setDragOverFolderId(null)
+    let pageIds = []
+    const idsData = e.dataTransfer.getData(DRAG_TYPE_IDS)
+    const singleId = e.dataTransfer.getData(DRAG_TYPE)
+    if (idsData) {
+      try {
+        pageIds = JSON.parse(idsData)
+      } catch {
+        pageIds = []
+      }
+    }
+    if (pageIds.length === 0 && singleId) pageIds = [singleId]
+    await movePagesToFolder(pageIds, folderId)
+  }
+
+  const handleMoveToFolderClick = (folderId) => {
+    const pageIds = Array.from(selectedIds)
+    movePagesToFolder(pageIds, folderId)
   }
 
   const handleCardDragStart = (e, page) => {
@@ -262,6 +273,39 @@ export const Gallery = () => {
               <Typography variant="body2" fontWeight={600}>
                 {selectedIds.size} selected
               </Typography>
+              {folders.length > 0 && (
+                <>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<DriveFileMove />}
+                    onClick={(e) => setMoveMenuAnchor(e.currentTarget)}
+                  >
+                    Add to folder
+                  </Button>
+                  <Menu
+                    anchorEl={moveMenuAnchor}
+                    open={Boolean(moveMenuAnchor)}
+                    onClose={() => setMoveMenuAnchor(null)}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                  >
+                    <MenuItem onClick={() => handleMoveToFolderClick(null)}>
+                      <ListItemIcon>
+                        <FolderIcon fontSize="small" />
+                      </ListItemIcon>
+                      Uncategorized
+                    </MenuItem>
+                    {folders.map((folder) => (
+                      <MenuItem key={folder.id} onClick={() => handleMoveToFolderClick(folder.id)}>
+                        <ListItemIcon>
+                          <FolderIcon fontSize="small" />
+                        </ListItemIcon>
+                        {folder.name}
+                      </MenuItem>
+                    ))}
+                  </Menu>
+                </>
+              )}
               <Button size="small" startIcon={<Close />} onClick={clearSelection}>
                 Clear
               </Button>
