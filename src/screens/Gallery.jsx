@@ -1,6 +1,17 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Box, Typography, Grid, Chip, Button, Menu, MenuItem, ListItemIcon } from '@mui/material'
+import {
+  Box,
+  Typography,
+  Grid,
+  Chip,
+  Button,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  CircularProgress,
+  LinearProgress,
+} from '@mui/material'
 import { Folder as FolderIcon, Close, DriveFileMove } from '@mui/icons-material'
 import { MainLayout } from '../components/Layout/MainLayout'
 import { ColoringPageCard } from '../components/ColoringPageCard'
@@ -75,6 +86,7 @@ export const Gallery = () => {
 
   const movePagesToFolder = async (pageIds, folderId) => {
     if (pageIds.length === 0 || !user?.uid) return
+    setMoveMenuAnchor(null)
     try {
       for (const pageId of pageIds) {
         await moveToFolderMutation.mutateAsync({
@@ -84,7 +96,6 @@ export const Gallery = () => {
         })
       }
       setSelectedIds(new Set())
-      setMoveMenuAnchor(null)
       if (folderId) {
         const folder = folders.find((f) => f.id === folderId)
         showToast(
@@ -142,6 +153,9 @@ export const Gallery = () => {
 
   return (
     <MainLayout>
+      {moveToFolderMutation.isPending && (
+        <LinearProgress sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1301 }} />
+      )}
       <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 700, marginBottom: 3 }}>
         Gallery
       </Typography>
@@ -164,6 +178,7 @@ export const Gallery = () => {
               onDragOver={(e) => handleFolderDragOver(e, '')}
               onDragLeave={handleFolderDragLeave}
               onDrop={(e) => handleFolderDrop(e, null)}
+              disabled={moveToFolderMutation.isPending}
               sx={(theme) => ({
                 backgroundColor:
                   dragOverFolderId === ''
@@ -194,6 +209,7 @@ export const Gallery = () => {
                 onDragOver={(e) => handleFolderDragOver(e, folder.id)}
                 onDragLeave={handleFolderDragLeave}
                 onDrop={(e) => handleFolderDrop(e, folder.id)}
+                disabled={moveToFolderMutation.isPending}
                 sx={(theme) => ({
                   backgroundColor:
                     dragOverFolderId === folder.id
@@ -271,15 +287,16 @@ export const Gallery = () => {
               }}
             >
               <Typography variant="body2" fontWeight={600}>
-                {selectedIds.size} selected
+                {moveToFolderMutation.isPending ? 'Adding to folder...' : `${selectedIds.size} selected`}
               </Typography>
               {folders.length > 0 && (
                 <>
                   <Button
                     size="small"
                     variant="outlined"
-                    startIcon={<DriveFileMove />}
+                    startIcon={moveToFolderMutation.isPending ? <CircularProgress size={16} color="inherit" /> : <DriveFileMove />}
                     onClick={(e) => setMoveMenuAnchor(e.currentTarget)}
+                    disabled={moveToFolderMutation.isPending}
                   >
                     Add to folder
                   </Button>
@@ -306,7 +323,12 @@ export const Gallery = () => {
                   </Menu>
                 </>
               )}
-              <Button size="small" startIcon={<Close />} onClick={clearSelection}>
+              <Button
+                size="small"
+                startIcon={<Close />}
+                onClick={clearSelection}
+                disabled={moveToFolderMutation.isPending}
+              >
                 Clear
               </Button>
             </Box>
@@ -318,12 +340,16 @@ export const Gallery = () => {
                   page={page}
                   onToggleFavorite={handleToggleFavorite}
                   isFavoritePending={toggleFavoriteMutation.isPending}
-                  draggable={folders.length > 0}
+                  draggable={folders.length > 0 && !moveToFolderMutation.isPending}
                   canDownloadPdf={canDownloadPdf}
                   selectable={folders.length > 0}
                   selected={selectedIds.has(page.id)}
                   onSelect={() => handleSelectPage(page.id)}
-                  onDragStart={folders.length > 0 ? (ev) => handleCardDragStart(ev, page) : undefined}
+                  onDragStart={
+                    folders.length > 0 && !moveToFolderMutation.isPending
+                      ? (ev) => handleCardDragStart(ev, page)
+                      : undefined
+                  }
                 />
               </Grid>
             ))}
