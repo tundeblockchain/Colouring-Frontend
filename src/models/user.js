@@ -8,8 +8,8 @@ export class User {
     this.displayName = data.displayName || ''
     this.avatarUrl = data.avatarUrl || null
     this.credits = data.credits || 0 // credits remaining (from backend)
-    this.creditAllowance = data.creditAllowance ?? data.credit_allowance ?? null // plan credit allowance from API
-    this.planCredits = data.planCredits ?? null // deprecated: use creditAllowance
+    this.creditsAllowance = data.creditsAllowance ?? data.credits_allowance ?? null // plan credit allowance from API
+    this.planCredits = data.planCredits ?? null // deprecated: use creditsAllowance
     this.creditsUsedTotal = data.creditsUsedTotal ?? data.credits_used_total ?? null // total credits used from API
     this.creditsUsed = data.creditsUsed ?? null // deprecated: use creditsUsedTotal
     this.purchasedCredits = data.purchasedCredits ?? 0 // one-time purchased credits

@@ -48,10 +48,10 @@ export const Header = ({ user }) => {
   const searchQuery = (searchParams.get('q') ?? '').trim()
   const [creditsPopoverOpen, setCreditsPopoverOpen] = useState(false)
 
-  // Map from API: credits = credits remaining, creditAllowance = plan credits, creditsUsedTotal = credits used
+  // Map from API: credits = credits remaining, creditsAllowance = plan credits, creditsUsedTotal = credits used
   const creditsRemaining = userProfile?.credits ?? 0
   const planCredits =
-    userProfile?.creditAllowance ??
+    userProfile?.creditsAllowance ??
     userProfile?.planCredits ??
     (PLAN_CREDITS_BY_PLAN[(userProfile?.plan || 'free').toLowerCase()] ?? PLAN_CREDITS_BY_PLAN.free)
   const creditsUsed =
