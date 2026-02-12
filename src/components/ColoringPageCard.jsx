@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Card, CardMedia, CardContent, IconButton, Typography, Menu, MenuItem } from '@mui/material'
+import { Card, CardMedia, CardContent, IconButton, Typography, Menu, MenuItem, Checkbox } from '@mui/material'
 import { Favorite, Download } from '@mui/icons-material'
 import { downloadImage } from '../utils/downloadImage'
 import { useToast } from '../contexts/ToastContext'
@@ -21,12 +21,32 @@ const DRAG_TYPE = 'application/x-coloring-page-id'
 
 const PDF_UPGRADE_MESSAGE = 'Download as PDF is available on Hobby, Artist and Business plans. Upgrade to unlock this feature.'
 
+const checkboxSx = {
+  position: 'absolute',
+  top: 8,
+  left: 8,
+  color: 'white',
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  backdropFilter: 'blur(6px)',
+  padding: 0.5,
+  '&.Mui-checked': {
+    color: 'primary.light',
+  },
+  '&:hover': {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+}
+
 export const ColoringPageCard = ({
   page,
   onToggleFavorite,
   isFavoritePending,
   draggable: isDraggable = false,
   canDownloadPdf = true,
+  selectable = false,
+  selected = false,
+  onSelect,
+  onDragStart,
 }) => {
   const imageUrl = page.imageUrl || page.thumbnailUrl
   const { showToast } = useToast()
@@ -49,8 +69,12 @@ export const ColoringPageCard = ({
 
   const handleDragStart = (e) => {
     if (!isDraggable) return
-    e.dataTransfer.setData(DRAG_TYPE, page.id)
-    e.dataTransfer.effectAllowed = 'move'
+    if (onDragStart) {
+      onDragStart(e)
+    } else {
+      e.dataTransfer.setData(DRAG_TYPE, page.id)
+      e.dataTransfer.effectAllowed = 'move'
+    }
     e.currentTarget.style.opacity = '0.5'
   }
 
@@ -68,6 +92,8 @@ export const ColoringPageCard = ({
         transition: 'transform 0.2s, box-shadow 0.2s',
         cursor: isDraggable ? 'grab' : undefined,
         '&:active': isDraggable ? { cursor: 'grabbing' } : undefined,
+        border: selected ? '3px solid' : undefined,
+        borderColor: selected ? 'primary.main' : undefined,
         '&:hover': {
           transform: 'translateY(-4px)',
           boxShadow: '0 8px 16px rgba(0,0,0,0.15)',
@@ -81,9 +107,18 @@ export const ColoringPageCard = ({
         alt={page.title}
         sx={{ objectFit: 'cover' }}
       />
+      {selectable && (
+        <Checkbox
+          checked={selected}
+          onChange={() => onSelect?.()}
+          onClick={(e) => e.stopPropagation()}
+          sx={checkboxSx}
+          size="small"
+        />
+      )}
       <IconButton
         onClick={handleDownloadClick}
-        sx={{ ...iconButtonSx, left: 8 }}
+        sx={{ ...iconButtonSx, left: selectable ? 44 : 8 }}
       >
         <Download />
       </IconButton>

@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Box, Typography, Grid, Chip } from '@mui/material'
-import { Folder as FolderIcon } from '@mui/icons-material'
+import { Box, Typography, Grid, Chip, Button } from '@mui/material'
+import { Folder as FolderIcon, Close } from '@mui/icons-material'
 import { MainLayout } from '../components/Layout/MainLayout'
 import { ColoringPageCard } from '../components/ColoringPageCard'
 import { useToast } from '../contexts/ToastContext'
@@ -11,6 +11,7 @@ import { useColoringPages, useToggleFavorite, useMoveToFolder } from '../hooks/u
 import { useFolders } from '../hooks/useFolders'
 
 const DRAG_TYPE = 'application/x-coloring-page-id'
+const DRAG_TYPE_IDS = 'application/x-coloring-page-ids'
 
 export const Gallery = () => {
   const navigate = useNavigate()
@@ -35,6 +36,18 @@ export const Gallery = () => {
   }, [coloringPages, searchQuery])
 
   const [dragOverFolderId, setDragOverFolderId] = useState(null)
+  const [selectedIds, setSelectedIds] = useState(new Set())
+
+  const handleSelectPage = useCallback((pageId) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(pageId)) next.delete(pageId)
+      else next.add(pageId)
+      return next
+    })
+  }, [])
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), [])
 
   const handleToggleFavorite = async (pageId) => {
     if (!user?.uid) return
@@ -62,23 +75,50 @@ export const Gallery = () => {
   const handleFolderDrop = async (e, folderId) => {
     e.preventDefault()
     setDragOverFolderId(null)
-    const pageId = e.dataTransfer.getData(DRAG_TYPE)
-    if (!pageId || !user?.uid) return
+    let pageIds = []
+    const idsData = e.dataTransfer.getData(DRAG_TYPE_IDS)
+    const singleId = e.dataTransfer.getData(DRAG_TYPE)
+    if (idsData) {
+      try {
+        pageIds = JSON.parse(idsData)
+      } catch {
+        pageIds = []
+      }
+    }
+    if (pageIds.length === 0 && singleId) pageIds = [singleId]
+    if (pageIds.length === 0 || !user?.uid) return
     try {
-      await moveToFolderMutation.mutateAsync({
-        pageId,
-        userId: user.uid,
-        folderId: folderId || null,
-      })
+      for (const pageId of pageIds) {
+        await moveToFolderMutation.mutateAsync({
+          pageId,
+          userId: user.uid,
+          folderId: folderId || null,
+        })
+      }
+      setSelectedIds(new Set())
       if (folderId) {
         const folder = folders.find((f) => f.id === folderId)
-        showToast(`Added to "${folder?.name || 'folder'}"`)
+        showToast(
+          pageIds.length > 1
+            ? `${pageIds.length} pages added to "${folder?.name || 'folder'}"`
+            : `Added to "${folder?.name || 'folder'}"`
+        )
       } else {
-        showToast('Removed from folder')
+        showToast(
+          pageIds.length > 1 ? `${pageIds.length} pages removed from folder` : 'Removed from folder'
+        )
       }
     } catch {
       showToast('Failed to move to folder', 'error')
     }
+  }
+
+  const handleCardDragStart = (e, page) => {
+    const ids = selectedIds.has(page.id)
+      ? Array.from(selectedIds)
+      : [page.id]
+    e.dataTransfer.setData(DRAG_TYPE_IDS, JSON.stringify(ids))
+    e.dataTransfer.effectAllowed = 'move'
   }
 
   if (isLoading) {
@@ -98,7 +138,7 @@ export const Gallery = () => {
       {folders.length > 0 && (
         <Box sx={{ marginBottom: 3 }}>
           <Typography variant="subtitle2" color="text.secondary" sx={{ marginBottom: 1 }}>
-            Drag images onto a folder to add them
+            Select images, then drag them onto a folder to add them
           </Typography>
           <Box
             sx={{
@@ -206,19 +246,45 @@ export const Gallery = () => {
           </Typography>
         </Box>
       ) : (
-        <Grid container spacing={3}>
-          {filteredPages.map((page) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={page.id}>
-              <ColoringPageCard
-                page={page}
-                onToggleFavorite={handleToggleFavorite}
-                isFavoritePending={toggleFavoriteMutation.isPending}
-                draggable={folders.length > 0}
-                canDownloadPdf={canDownloadPdf}
-              />
-            </Grid>
-          ))}
-        </Grid>
+        <>
+          {selectedIds.size > 0 && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                marginBottom: 2,
+                padding: 1.5,
+                backgroundColor: 'action.selected',
+                borderRadius: 1,
+              }}
+            >
+              <Typography variant="body2" fontWeight={600}>
+                {selectedIds.size} selected
+              </Typography>
+              <Button size="small" startIcon={<Close />} onClick={clearSelection}>
+                Clear
+              </Button>
+            </Box>
+          )}
+          <Grid container spacing={3}>
+            {filteredPages.map((page) => (
+              <Grid item xs={12} sm={6} md={4} lg={3} key={page.id}>
+                <ColoringPageCard
+                  page={page}
+                  onToggleFavorite={handleToggleFavorite}
+                  isFavoritePending={toggleFavoriteMutation.isPending}
+                  draggable={folders.length > 0}
+                  canDownloadPdf={canDownloadPdf}
+                  selectable={folders.length > 0}
+                  selected={selectedIds.has(page.id)}
+                  onSelect={() => handleSelectPage(page.id)}
+                  onDragStart={folders.length > 0 ? (ev) => handleCardDragStart(ev, page) : undefined}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </>
       )}
     </MainLayout>
   )

@@ -426,7 +426,7 @@ export const CreateColoringPage = () => {
           <Tabs value={activeTab} onChange={handleTabChange} sx={{ marginBottom: 3 }}>
             <Tab label="Text Prompt" value="text" />
             <Tab label="Word Art" value="wordArt" />
-            <Tab label="Front Cover" value="frontCover" />
+            {/* <Tab label="Front Cover" value="frontCover" /> */}
             <Tab label="Photo" value="photo" />
           </Tabs>
 
