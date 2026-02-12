@@ -48,16 +48,15 @@ export const Header = ({ user }) => {
   const searchQuery = (searchParams.get('q') ?? '').trim()
   const [creditsPopoverOpen, setCreditsPopoverOpen] = useState(false)
 
+  // Map from API: credits = credits remaining, creditAllowance = plan credits, creditsUsedTotal = credits used
   const creditsRemaining = userProfile?.credits ?? 0
-  const planKey = (userProfile?.plan || 'free').toLowerCase()
-  const derivedPlanCredits = PLAN_CREDITS_BY_PLAN[planKey] ?? PLAN_CREDITS_BY_PLAN.free
-  // Use known plan allowance for standard plans so display is correct after upgrades
   const planCredits =
-    planKey && derivedPlanCredits != null
-      ? derivedPlanCredits
-      : (userProfile?.planCredits ?? derivedPlanCredits)
-  // Derive used from allowance minus remaining so we don't show stale/wrong API creditsUsed
-  const creditsUsed = Math.max(0, planCredits - creditsRemaining)
+    userProfile?.creditAllowance ??
+    userProfile?.planCredits ??
+    (PLAN_CREDITS_BY_PLAN[(userProfile?.plan || 'free').toLowerCase()] ?? PLAN_CREDITS_BY_PLAN.free)
+  const creditsUsed =
+    userProfile?.creditsUsedTotal ??
+    (planCredits != null ? Math.max(0, planCredits - creditsRemaining) : 0)
   const planLabel = userProfile?.plan === 'free' || !userProfile?.plan ? 'Free Trial' : (userProfile?.plan ?? 'Free Trial')
 
   const isOnGallery = location.pathname === '/gallery'
