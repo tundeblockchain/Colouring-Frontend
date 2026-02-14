@@ -17,6 +17,7 @@ import {
   DialogActions,
   IconButton,
   TextField,
+  CircularProgress,
 } from '@mui/material'
 import { ArrowBack, Download, Edit, Delete, Close } from '@mui/icons-material'
 import { MainLayout } from '../components/Layout/MainLayout'
@@ -52,6 +53,7 @@ export const FolderView = () => {
   const [renameValue, setRenameValue] = useState('')
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [downloadMenuAnchor, setDownloadMenuAnchor] = useState(null)
+  const [downloadLoading, setDownloadLoading] = useState(false)
 
   const handleToggleFavorite = async (pageId) => {
     if (!user?.uid) return
@@ -76,13 +78,20 @@ export const FolderView = () => {
   const handleDownloadAllAsPng = async () => {
     handleDownloadMenuClose()
     if (pagesInFolder.length === 0) return
-    const items = pagesInFolder.map((p) => ({
-      url: p.imageUrl || p.thumbnailUrl,
-      title: p.title,
-      id: p.id,
-    }))
-    await downloadImagesAsZip(items, folder?.name || 'coloring-pages', user?.uid)
-    showToast(`Downloaded ${pagesInFolder.length} page(s) as ZIP`)
+    setDownloadLoading(true)
+    try {
+      const items = pagesInFolder.map((p) => ({
+        url: p.imageUrl || p.thumbnailUrl,
+        title: p.title,
+        id: p.id,
+      }))
+      await downloadImagesAsZip(items, folder?.name || 'coloring-pages', user?.uid)
+      showToast(`Downloaded ${pagesInFolder.length} page(s) as ZIP`)
+    } catch (error) {
+      showToast(error.message || 'Failed to download images as ZIP', 'error')
+    } finally {
+      setDownloadLoading(false)
+    }
   }
 
   const handleDownloadAllAsPdf = async () => {
@@ -92,13 +101,20 @@ export const FolderView = () => {
       showToast('Download as PDF is available on Hobby, Artist and Business plans. Upgrade to unlock this feature.', 'info')
       return
     }
-    const items = pagesInFolder.map((p) => ({
-      url: p.imageUrl || p.thumbnailUrl,
-      title: p.title,
-      id: p.id,
-    }))
-    await downloadImagesAsPdf(items, folder?.name || 'coloring-pages', user?.uid)
-    showToast(`Downloaded ${pagesInFolder.length} page(s) as PDF`)
+    setDownloadLoading(true)
+    try {
+      const items = pagesInFolder.map((p) => ({
+        url: p.imageUrl || p.thumbnailUrl,
+        title: p.title,
+        id: p.id,
+      }))
+      await downloadImagesAsPdf(items, folder?.name || 'coloring-pages', user?.uid)
+      showToast(`Downloaded ${pagesInFolder.length} page(s) as PDF`)
+    } catch (error) {
+      showToast(error.message || 'Failed to download images as PDF', 'error')
+    } finally {
+      setDownloadLoading(false)
+    }
   }
 
   const handleOpenRename = () => {
@@ -197,16 +213,16 @@ export const FolderView = () => {
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Button
               variant="contained"
-              startIcon={<Download />}
+              startIcon={downloadLoading ? <CircularProgress size={20} color="inherit" /> : <Download />}
               onClick={handleDownloadMenuOpen}
-              disabled={isEmpty}
+              disabled={isEmpty || downloadLoading}
               sx={{
                 backgroundColor: isEmpty ? 'action.disabledBackground' : 'primary.main',
                 color: isEmpty ? 'action.disabled' : 'primary.contrastText',
                 '&:hover': isEmpty ? {} : { backgroundColor: 'primary.dark' },
               }}
             >
-              Download all ({pagesInFolder.length})
+              {downloadLoading ? 'Downloading...' : `Download all (${pagesInFolder.length})`}
             </Button>
             <Menu
               anchorEl={downloadMenuAnchor}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Card, CardMedia, CardContent, IconButton, Typography, Menu, MenuItem, Checkbox } from '@mui/material'
+import { Card, CardMedia, CardContent, IconButton, Typography, Menu, MenuItem, Checkbox, CircularProgress } from '@mui/material'
 import { Favorite, Download } from '@mui/icons-material'
 import { downloadImage } from '../utils/downloadImage'
 import { useToast } from '../contexts/ToastContext'
@@ -52,6 +52,7 @@ export const ColoringPageCard = ({
   const imageUrl = page.imageUrl || page.thumbnailUrl
   const { showToast } = useToast()
   const [downloadAnchor, setDownloadAnchor] = useState(null)
+  const [downloadLoading, setDownloadLoading] = useState(false)
 
   const handleDownloadClick = (e) => {
     setDownloadAnchor(e.currentTarget)
@@ -64,8 +65,15 @@ export const ColoringPageCard = ({
       showToast(PDF_UPGRADE_MESSAGE, 'info')
       return
     }
-    await downloadImage(imageUrl, page.title, format, page.id, userId)
-    showToast(`Downloaded as ${format.toUpperCase()}`)
+    setDownloadLoading(true)
+    try {
+      await downloadImage(imageUrl, page.title, format, page.id, userId)
+      showToast(`Downloaded as ${format.toUpperCase()}`)
+    } catch (error) {
+      showToast(error.message || 'Failed to download image', 'error')
+    } finally {
+      setDownloadLoading(false)
+    }
   }
 
   const handleDragStart = (e) => {
@@ -119,9 +127,10 @@ export const ColoringPageCard = ({
       )}
       <IconButton
         onClick={handleDownloadClick}
+        disabled={downloadLoading}
         sx={{ ...iconButtonSx, left: selectable ? 44 : 8 }}
       >
-        <Download />
+        {downloadLoading ? <CircularProgress size={20} color="inherit" /> : <Download />}
       </IconButton>
       <Menu
         anchorEl={downloadAnchor}

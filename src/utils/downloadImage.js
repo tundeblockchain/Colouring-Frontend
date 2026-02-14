@@ -63,7 +63,7 @@ export const downloadImage = async (imageUrl, title, format = 'png', pageId = nu
       trackDownload('pdf', 1)
     }
   } catch (err) {
-    console.error('Download failed:', err)
+    throw new Error(err.message || 'Failed to download image')
   }
 }
 
@@ -141,7 +141,7 @@ export const downloadImagesAsPdf = async (items, filename = 'coloring-pages', us
       trackDownload('pdf', items.length)
     }
   } catch (err) {
-    console.error('Download PDF failed:', err)
+    throw new Error(err.message || 'Failed to download PDF')
   }
 }
 
@@ -185,6 +185,6 @@ export const downloadImagesAsZip = async (items, zipFilename = 'coloring-pages',
     trackDownload('image', items.length)
     setTimeout(() => URL.revokeObjectURL(url), 200)
   } catch (err) {
-    console.error('Download ZIP failed:', err)
+    throw new Error(err.message || 'Failed to download ZIP')
   }
 }
