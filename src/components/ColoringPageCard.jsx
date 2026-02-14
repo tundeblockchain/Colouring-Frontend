@@ -47,6 +47,7 @@ export const ColoringPageCard = ({
   selected = false,
   onSelect,
   onDragStart,
+  userId,
 }) => {
   const imageUrl = page.imageUrl || page.thumbnailUrl
   const { showToast } = useToast()
@@ -63,7 +64,7 @@ export const ColoringPageCard = ({
       showToast(PDF_UPGRADE_MESSAGE, 'info')
       return
     }
-    await downloadImage(imageUrl, page.title, format)
+    await downloadImage(imageUrl, page.title, format, page.id, userId)
     showToast(`Downloaded as ${format.toUpperCase()}`)
   }
 

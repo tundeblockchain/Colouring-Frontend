@@ -345,6 +345,7 @@ export const Gallery = () => {
                   selectable={folders.length > 0}
                   selected={selectedIds.has(page.id)}
                   onSelect={() => handleSelectPage(page.id)}
+                  userId={user?.uid}
                   onDragStart={
                     folders.length > 0 && !moveToFolderMutation.isPending
                       ? (ev) => handleCardDragStart(ev, page)

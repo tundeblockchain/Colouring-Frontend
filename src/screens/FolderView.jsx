@@ -79,8 +79,9 @@ export const FolderView = () => {
     const items = pagesInFolder.map((p) => ({
       url: p.imageUrl || p.thumbnailUrl,
       title: p.title,
+      id: p.id,
     }))
-    await downloadImagesAsZip(items, folder?.name || 'coloring-pages')
+    await downloadImagesAsZip(items, folder?.name || 'coloring-pages', user?.uid)
     showToast(`Downloaded ${pagesInFolder.length} page(s) as ZIP`)
   }
 
@@ -94,8 +95,9 @@ export const FolderView = () => {
     const items = pagesInFolder.map((p) => ({
       url: p.imageUrl || p.thumbnailUrl,
       title: p.title,
+      id: p.id,
     }))
-    await downloadImagesAsPdf(items, folder?.name || 'coloring-pages')
+    await downloadImagesAsPdf(items, folder?.name || 'coloring-pages', user?.uid)
     showToast(`Downloaded ${pagesInFolder.length} page(s) as PDF`)
   }
 
@@ -285,6 +287,7 @@ export const FolderView = () => {
                 onToggleFavorite={handleToggleFavorite}
                 isFavoritePending={toggleFavoriteMutation.isPending}
                 canDownloadPdf={canDownloadPdf}
+                userId={user?.uid}
               />
             </Grid>
           ))}

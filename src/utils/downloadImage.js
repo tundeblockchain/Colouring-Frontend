@@ -1,16 +1,29 @@
 import { jsPDF } from 'jspdf'
 import { trackDownload } from './analytics'
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'
+
 /**
  * Download an image from a URL. Saves as PNG or PDF.
+ * Uses CORS-safe proxy when pageId and userId are provided.
  * @param {string} imageUrl - URL of the image
  * @param {string} title - Base filename (without extension)
  * @param {'png' | 'pdf'} format - Download format
+ * @param {string} [pageId] - Coloring page ID (for CORS-safe proxy)
+ * @param {string} [userId] - User ID (for CORS-safe proxy)
  */
-export const downloadImage = async (imageUrl, title, format = 'png') => {
+export const downloadImage = async (imageUrl, title, format = 'png', pageId = null, userId = null) => {
   const baseName = (title || 'coloring-page').replace(/[<>:"/\\|?*]/g, '_')
   try {
-    const response = await fetch(imageUrl)
+    // Use CORS-safe proxy for PDF downloads or when pageId and userId are provided
+    const useCorsProxy = (format === 'pdf' || pageId) && pageId && userId
+    const fetchUrl = useCorsProxy
+      ? `${API_BASE_URL}/coloring-pages/${pageId}/image`
+      : imageUrl
+    const fetchOptions = useCorsProxy
+      ? { headers: { 'X-User-Id': userId } }
+      : {}
+    const response = await fetch(fetchUrl, fetchOptions)
     const blob = await response.blob()
     if (format === 'png') {
       const url = URL.createObjectURL(blob)
@@ -78,18 +91,23 @@ function loadImage(dataUrl) {
 
 /**
  * Download multiple images as a single PDF (one image per page).
- * @param {Array<{ url: string, title: string }>} items - Items with imageUrl and title
+ * @param {Array<{ url: string, title: string, id?: string }>} items - Items with imageUrl, title, and optional id
  * @param {string} filename - Base filename for the PDF
+ * @param {string} [userId] - User ID (for CORS-safe proxy)
  */
-export const downloadImagesAsPdf = async (items, filename = 'coloring-pages') => {
+export const downloadImagesAsPdf = async (items, filename = 'coloring-pages', userId = null) => {
   if (!items?.length) return
   const baseName = (filename || 'coloring-pages').replace(/[<>:"/\\|?*]/g, '_')
   try {
     const { jsPDF } = await import('jspdf')
     let pdf = null
     for (let i = 0; i < items.length; i++) {
-      const { url, title } = items[i]
-      const response = await fetch(url)
+      const { url, title, id } = items[i]
+      // Use CORS-safe proxy when id and userId are available
+      const useCorsProxy = id && userId
+      const fetchUrl = useCorsProxy ? `${API_BASE_URL}/coloring-pages/${id}/image` : url
+      const fetchOptions = useCorsProxy ? { headers: { 'X-User-Id': userId } } : {}
+      const response = await fetch(fetchUrl, fetchOptions)
       const blob = await response.blob()
       const dataUrl = await blobToDataUrl(blob)
       const img = await loadImage(dataUrl)
@@ -129,10 +147,11 @@ export const downloadImagesAsPdf = async (items, filename = 'coloring-pages') =>
 
 /**
  * Download multiple images as a single ZIP file (one PNG per image).
- * @param {Array<{ url: string, title: string }>} items - Items with imageUrl and title
+ * @param {Array<{ url: string, title: string, id?: string }>} items - Items with imageUrl, title, and optional id
  * @param {string} zipFilename - Base filename for the ZIP (without .zip)
+ * @param {string} [userId] - User ID (for CORS-safe proxy)
  */
-export const downloadImagesAsZip = async (items, zipFilename = 'coloring-pages') => {
+export const downloadImagesAsZip = async (items, zipFilename = 'coloring-pages', userId = null) => {
   if (!items?.length) return
   const baseName = (zipFilename || 'coloring-pages').replace(/[<>:"/\\|?*]/g, '_')
   try {
@@ -140,8 +159,12 @@ export const downloadImagesAsZip = async (items, zipFilename = 'coloring-pages')
     const zip = new JSZip()
     const usedNames = new Set()
     for (let i = 0; i < items.length; i++) {
-      const { url, title } = items[i]
-      const response = await fetch(url)
+      const { url, title, id } = items[i]
+      // Use CORS-safe proxy when id and userId are available
+      const useCorsProxy = id && userId
+      const fetchUrl = useCorsProxy ? `${API_BASE_URL}/coloring-pages/${id}/image` : url
+      const fetchOptions = useCorsProxy ? { headers: { 'X-User-Id': userId } } : {}
+      const response = await fetch(fetchUrl, fetchOptions)
       const blob = await response.blob()
       const base = (title || `coloring-page-${i + 1}`).replace(/[<>:"/\\|?*]/g, '_').replace(/\.png$/i, '')
       let fileName = `${base}.png`
