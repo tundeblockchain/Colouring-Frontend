@@ -15,15 +15,19 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 export const downloadImage = async (imageUrl, title, format = 'png', pageId = null, userId = null) => {
   const baseName = (title || 'coloring-page').replace(/[<>:"/\\|?*]/g, '_')
   try {
-    // Use CORS-safe proxy only for PDF downloads (which need canvas access)
-    const useCorsProxy = format === 'pdf' && pageId && userId
-    const fetchUrl = useCorsProxy
-      ? `${API_BASE_URL}/coloring-pages/${pageId}/image`
-      : imageUrl
-    const fetchOptions = useCorsProxy
-      ? { headers: { 'X-User-Id': userId } }
-      : {}
-    const response = await fetch(fetchUrl, fetchOptions)
+    // Fetch the coloring page data to get the latest imageUrl
+    let finalImageUrl = imageUrl
+    if (pageId && userId) {
+      const pageResponse = await fetch(`${API_BASE_URL}/coloring-pages/${pageId}`, {
+        headers: { 'X-User-Id': userId },
+      })
+      if (pageResponse.ok) {
+        const pageData = await pageResponse.json()
+        finalImageUrl = pageData?.data?.imageUrl || pageData?.imageUrl || imageUrl
+      }
+    }
+    
+    const response = await fetch(finalImageUrl)
     const blob = await response.blob()
     if (format === 'png') {
       const url = URL.createObjectURL(blob)
@@ -104,11 +108,18 @@ export const downloadImagesAsPdf = async (items, filename = 'coloring-pages', us
     let pdf = null
     for (let i = 0; i < items.length; i++) {
       const { url, title, id } = items[i]
-      // Use CORS-safe proxy when id and userId are available
-      const useCorsProxy = id && userId
-      const fetchUrl = useCorsProxy ? `${API_BASE_URL}/coloring-pages/${id}/image` : url
-      const fetchOptions = useCorsProxy ? { headers: { 'X-User-Id': userId } } : {}
-      const response = await fetch(fetchUrl, fetchOptions)
+      // Fetch the coloring page data to get the latest imageUrl
+      let finalImageUrl = url
+      if (id && userId) {
+        const pageResponse = await fetch(`${API_BASE_URL}/coloring-pages/${id}`, {
+          headers: { 'X-User-Id': userId },
+        })
+      if (pageResponse.ok) {
+        const pageData = await pageResponse.json()
+        finalImageUrl = pageData?.coloringPage?.imageUrl || pageData?.data?.imageUrl || pageData?.imageUrl || url
+      }
+      }
+      const response = await fetch(finalImageUrl)
       const blob = await response.blob()
       const dataUrl = await blobToDataUrl(blob)
       const img = await loadImage(dataUrl)
@@ -162,11 +173,18 @@ export const downloadImagesAsZip = async (items, zipFilename = 'coloring-pages',
     const usedNames = new Set()
     for (let i = 0; i < items.length; i++) {
       const { url, title, id } = items[i]
-      // Use CORS-safe proxy when id and userId are available
-      const useCorsProxy = id && userId
-      const fetchUrl = useCorsProxy ? `${API_BASE_URL}/coloring-pages/${id}/image` : url
-      const fetchOptions = useCorsProxy ? { headers: { 'X-User-Id': userId } } : {}
-      const response = await fetch(fetchUrl, fetchOptions)
+      // Fetch the coloring page data to get the latest imageUrl
+      let finalImageUrl = url
+      if (id && userId) {
+        const pageResponse = await fetch(`${API_BASE_URL}/coloring-pages/${id}`, {
+          headers: { 'X-User-Id': userId },
+        })
+      if (pageResponse.ok) {
+        const pageData = await pageResponse.json()
+        finalImageUrl = pageData?.coloringPage?.imageUrl || pageData?.data?.imageUrl || pageData?.imageUrl || url
+      }
+      }
+      const response = await fetch(finalImageUrl)
       const blob = await response.blob()
       const base = (title || `coloring-page-${i + 1}`).replace(/[<>:"/\\|?*]/g, '_').replace(/\.png$/i, '')
       let fileName = `${base}.png`

@@ -26,13 +26,13 @@ const featureCards = [
     image: '/word-art.png',
     path: '/create/word-art',
   },
-  {
-    id: 3,
-    title: 'Front Cover',
-    description: 'Generate a front cover for your colouring book.',
-    image: '/text-prompts.png',
-    path: '/create/front-cover',
-  },
+  // {
+  //   id: 3,
+  //   title: 'Front Cover',
+  //   description: 'Generate a front cover for your colouring book.',
+  //   image: '/text-prompts.png',
+  //   path: '/create/front-cover',
+  // },
   {
     id: 4,
     title: 'Photos',
