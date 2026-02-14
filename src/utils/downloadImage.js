@@ -5,29 +5,25 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 
 /**
  * Download an image from a URL. Saves as PNG or PDF.
- * Uses CORS-safe proxy when pageId and userId are provided.
+ * Uses /image endpoint when pageId and userId are provided.
  * @param {string} imageUrl - URL of the image
  * @param {string} title - Base filename (without extension)
  * @param {'png' | 'pdf'} format - Download format
- * @param {string} [pageId] - Coloring page ID (for CORS-safe proxy)
- * @param {string} [userId] - User ID (for CORS-safe proxy)
+ * @param {string} [pageId] - Coloring page ID (for /image endpoint)
+ * @param {string} [userId] - User ID (for /image endpoint)
  */
 export const downloadImage = async (imageUrl, title, format = 'png', pageId = null, userId = null) => {
   const baseName = (title || 'coloring-page').replace(/[<>:"/\\|?*]/g, '_')
   try {
-    // Fetch the coloring page data to get the latest imageUrl
-    let finalImageUrl = imageUrl
+    const fetchUrl = pageId && userId
+      ? `${API_BASE_URL}/coloring-pages/${pageId}/image`
+      : imageUrl
+    const headers = {}
     if (pageId && userId) {
-      const pageResponse = await fetch(`${API_BASE_URL}/coloring-pages/${pageId}`, {
-        headers: { 'X-User-Id': userId },
-      })
-      if (pageResponse.ok) {
-        const pageData = await pageResponse.json()
-        finalImageUrl = pageData?.data?.imageUrl || pageData?.imageUrl || imageUrl
-      }
+      headers['X-User-Id'] = userId
+      headers['Accept'] = 'image/png, image/jpeg'
     }
-    
-    const response = await fetch(finalImageUrl)
+    const response = await fetch(fetchUrl, { headers: Object.keys(headers).length ? headers : undefined })
     const blob = await response.blob()
     if (format === 'png') {
       const url = URL.createObjectURL(blob)
@@ -108,18 +104,15 @@ export const downloadImagesAsPdf = async (items, filename = 'coloring-pages', us
     let pdf = null
     for (let i = 0; i < items.length; i++) {
       const { url, title, id } = items[i]
-      // Fetch the coloring page data to get the latest imageUrl
-      let finalImageUrl = url
+      const fetchUrl = id && userId
+        ? `${API_BASE_URL}/coloring-pages/${id}/image`
+        : url
+      const headers = {}
       if (id && userId) {
-        const pageResponse = await fetch(`${API_BASE_URL}/coloring-pages/${id}`, {
-          headers: { 'X-User-Id': userId },
-        })
-      if (pageResponse.ok) {
-        const pageData = await pageResponse.json()
-        finalImageUrl = pageData?.coloringPage?.imageUrl || pageData?.data?.imageUrl || pageData?.imageUrl || url
+        headers['X-User-Id'] = userId
+        headers['Accept'] = 'image/png, image/jpeg'
       }
-      }
-      const response = await fetch(finalImageUrl)
+      const response = await fetch(fetchUrl, { headers: Object.keys(headers).length ? headers : undefined })
       const blob = await response.blob()
       const dataUrl = await blobToDataUrl(blob)
       const img = await loadImage(dataUrl)
@@ -173,18 +166,15 @@ export const downloadImagesAsZip = async (items, zipFilename = 'coloring-pages',
     const usedNames = new Set()
     for (let i = 0; i < items.length; i++) {
       const { url, title, id } = items[i]
-      // Fetch the coloring page data to get the latest imageUrl
-      let finalImageUrl = url
+      const fetchUrl = id && userId
+        ? `${API_BASE_URL}/coloring-pages/${id}/image`
+        : url
+      const headers = {}
       if (id && userId) {
-        const pageResponse = await fetch(`${API_BASE_URL}/coloring-pages/${id}`, {
-          headers: { 'X-User-Id': userId },
-        })
-      if (pageResponse.ok) {
-        const pageData = await pageResponse.json()
-        finalImageUrl = pageData?.coloringPage?.imageUrl || pageData?.data?.imageUrl || pageData?.imageUrl || url
+        headers['X-User-Id'] = userId
+        headers['Accept'] = 'image/png, image/jpeg'
       }
-      }
-      const response = await fetch(finalImageUrl)
+      const response = await fetch(fetchUrl, { headers: Object.keys(headers).length ? headers : undefined })
       const blob = await response.blob()
       const base = (title || `coloring-page-${i + 1}`).replace(/[<>:"/\\|?*]/g, '_').replace(/\.png$/i, '')
       let fileName = `${base}.png`
