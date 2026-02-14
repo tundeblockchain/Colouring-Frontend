@@ -24,12 +24,18 @@ export const downloadImage = async (imageUrl, title, format = 'png', pageId = nu
       headers['Accept'] = 'image/png, image/jpeg'
     }
     const response = await fetch(fetchUrl, { headers: Object.keys(headers).length ? headers : undefined })
+    const contentType = response.headers.get('Content-Type') || ''
     const blob = await response.blob()
+    // Use response Content-Type so extension matches actual image format (fixes "unsupported format" when server returns JPEG)
+    const isJpeg = contentType.includes('image/jpeg') || contentType.includes('image/jpg')
+    const imageExt = isJpeg ? 'jpg' : 'png'
+    const imageType = isJpeg ? 'image/jpeg' : 'image/png'
+    const typedBlob = blob.type === imageType ? blob : new Blob([await blob.arrayBuffer()], { type: imageType })
     if (format === 'png') {
-      const url = URL.createObjectURL(blob)
+      const url = URL.createObjectURL(typedBlob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `${baseName}.png`
+      link.download = `${baseName}.${imageExt}`
       link.click()
       trackDownload('image', 1)
       // Delay revoke so the browser can start the download before the URL is released
