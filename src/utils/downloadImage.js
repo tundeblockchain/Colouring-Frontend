@@ -15,8 +15,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 export const downloadImage = async (imageUrl, title, format = 'png', pageId = null, userId = null) => {
   const baseName = (title || 'coloring-page').replace(/[<>:"/\\|?*]/g, '_')
   try {
-    // Use CORS-safe proxy for PDF downloads or when pageId and userId are provided
-    const useCorsProxy = (format === 'pdf' || pageId) && pageId && userId
+    // Use CORS-safe proxy only for PDF downloads (which need canvas access)
+    const useCorsProxy = format === 'pdf' && pageId && userId
     const fetchUrl = useCorsProxy
       ? `${API_BASE_URL}/coloring-pages/${pageId}/image`
       : imageUrl
@@ -63,6 +63,7 @@ export const downloadImage = async (imageUrl, title, format = 'png', pageId = nu
       trackDownload('pdf', 1)
     }
   } catch (err) {
+    console.error('Download failed:', err)
     throw new Error(err.message || 'Failed to download image')
   }
 }
@@ -141,6 +142,7 @@ export const downloadImagesAsPdf = async (items, filename = 'coloring-pages', us
       trackDownload('pdf', items.length)
     }
   } catch (err) {
+    console.error('Download PDF failed:', err)
     throw new Error(err.message || 'Failed to download PDF')
   }
 }
@@ -185,6 +187,7 @@ export const downloadImagesAsZip = async (items, zipFilename = 'coloring-pages',
     trackDownload('image', items.length)
     setTimeout(() => URL.revokeObjectURL(url), 200)
   } catch (err) {
+    console.error('Download ZIP failed:', err)
     throw new Error(err.message || 'Failed to download ZIP')
   }
 }

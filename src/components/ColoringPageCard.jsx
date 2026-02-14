@@ -70,6 +70,7 @@ export const ColoringPageCard = ({
       await downloadImage(imageUrl, page.title, format, page.id, userId)
       showToast(`Downloaded as ${format.toUpperCase()}`)
     } catch (error) {
+      console.error('Download error:', error)
       showToast(error.message || 'Failed to download image', 'error')
     } finally {
       setDownloadLoading(false)

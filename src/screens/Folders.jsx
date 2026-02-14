@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -19,6 +19,7 @@ import { CreateNewFolder, Close } from '@mui/icons-material'
 import { MainLayout } from '../components/Layout/MainLayout'
 import { useAuth } from '../hooks/useAuth'
 import { useFolders, useCreateFolder } from '../hooks/useFolders'
+import { useColoringPages } from '../hooks/useColoringPages'
 import { useToast } from '../contexts/ToastContext'
 
 export const Folders = () => {
@@ -26,10 +27,30 @@ export const Folders = () => {
   const { user } = useAuth()
   const { showToast } = useToast()
   const { data: folders = [], isLoading } = useFolders(user?.uid)
+  const { data: coloringPages = [] } = useColoringPages(user?.uid)
   const createFolderMutation = useCreateFolder()
 
   const [modalOpen, setModalOpen] = useState(false)
   const [folderName, setFolderName] = useState('')
+
+  // Map folder IDs to their first image
+  const folderThumbnails = useMemo(() => {
+    const thumbnails = {}
+    if (!Array.isArray(folders) || !Array.isArray(coloringPages)) {
+      return thumbnails
+    }
+    folders.forEach((folder) => {
+      if (!folder || !folder.id) return
+      const firstPageInFolder = coloringPages.find((page) => page && page.folderId === folder.id)
+      if (firstPageInFolder) {
+        const imageUrl = firstPageInFolder.imageUrl || firstPageInFolder.thumbnailUrl
+        if (imageUrl && typeof imageUrl === 'string' && imageUrl.trim()) {
+          thumbnails[folder.id] = imageUrl
+        }
+      }
+    })
+    return thumbnails
+  }, [folders, coloringPages])
 
   const handleOpenModal = () => {
     setFolderName('')
@@ -129,9 +150,9 @@ export const Folders = () => {
       ) : (
         <Grid container spacing={3}>
           {folders.map((folder) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={folder.id}>
+            <Grid item xs={12} sm={6} md={4} lg={3} key={folder?.id || Math.random()}>
               <Card
-                onClick={() => navigate(`/folders/${folder.id}`)}
+                onClick={() => folder?.id && navigate(`/folders/${folder.id}`)}
                 sx={{
                   height: '100%',
                   display: 'flex',
@@ -149,14 +170,15 @@ export const Folders = () => {
                   component="div"
                   sx={{
                     height: 200,
-                    backgroundColor: folder.color || '#F8BBD9',
-                    backgroundImage: folder.thumbnailUrl
-                      ? `url(${folder.thumbnailUrl})`
+                    backgroundColor: folder?.color || '#F8BBD9',
+                    backgroundImage: folder?.id && folderThumbnails[folder.id]
+                      ? `url(${folderThumbnails[folder.id]})`
                       : 'none',
                     backgroundSize: 'cover',
+                    backgroundPosition: 'center',
                   }}
                 >
-                  {!folder.thumbnailUrl && (
+                  {(!folder?.id || !folderThumbnails[folder.id]) && (
                     <Box
                       sx={{
                         width: '100%',
@@ -172,12 +194,12 @@ export const Folders = () => {
                 </CardMedia>
                 <CardContent sx={{ flexGrow: 1, pt: 1.5, pb: 2, '&:last-child': { pb: 2 } }}>
                   <Typography variant="h6" component="h2" gutterBottom sx={{ fontWeight: 600, color: '#C2185B' }}>
-                    {folder.name}
+                    {folder?.name || 'Untitled Folder'}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {pageLabel(folder.coloringPageCount)}
+                    {pageLabel(folder?.coloringPageCount ?? 0)}
                   </Typography>
-                  {folder.isPinned && (
+                  {folder?.isPinned && (
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', marginTop: 0.5 }}>
                       pinned folder
                     </Typography>
