@@ -11,8 +11,8 @@ export const getHeaders = (userId, additionalHeaders = {}, body) => {
   const headers = { ...additionalHeaders }
   if (body instanceof FormData) {
     // Do not set Content-Type; browser will set multipart/form-data with boundary
-  } else {
-    headers['Content-Type'] = 'application/json'
+  } else if (body !== undefined && body !== null) {
+    headers['Content-Type'] = 'application/json; charset=utf-8'
   }
   if (userId) {
     headers['X-User-Id'] = userId
@@ -66,8 +66,24 @@ export const apiRequest = async (endpoint, options = {}) => {
     headers: getHeaders(userId, customHeaders, body),
   }
 
-  if (body) {
-    requestOptions.body = body instanceof FormData ? body : JSON.stringify(body)
+  if (body !== undefined && body !== null) {
+    if (body instanceof FormData) {
+      requestOptions.body = body
+    } else if (typeof body === 'string') {
+      // Already serialized; send as-is to avoid double-encoding
+      requestOptions.body = body
+    } else {
+      try {
+        requestOptions.body = JSON.stringify(body)
+      } catch (e) {
+        return {
+          success: false,
+          error: 'Request body could not be serialized to JSON',
+          status: 0,
+          data: null,
+        }
+      }
+    }
   }
 
   try {
