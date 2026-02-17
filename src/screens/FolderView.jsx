@@ -18,6 +18,7 @@ import {
   IconButton,
   TextField,
   CircularProgress,
+  LinearProgress,
 } from '@mui/material'
 import { ArrowBack, Download, Edit, Delete, Close } from '@mui/icons-material'
 import { MainLayout } from '../components/Layout/MainLayout'
@@ -54,6 +55,7 @@ export const FolderView = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [downloadMenuAnchor, setDownloadMenuAnchor] = useState(null)
   const [downloadLoading, setDownloadLoading] = useState(false)
+  const [downloadProgress, setDownloadProgress] = useState(null)
 
   const handleToggleFavorite = async (pageId) => {
     if (!user?.uid) return
@@ -79,19 +81,23 @@ export const FolderView = () => {
     handleDownloadMenuClose()
     if (pagesInFolder.length === 0) return
     setDownloadLoading(true)
+    setDownloadProgress(0)
     try {
       const items = pagesInFolder.map((p) => ({
         url: p.imageUrl || p.thumbnailUrl,
         title: p.title,
         id: p.id,
       }))
-      await downloadImagesAsZip(items, folder?.name || 'coloring-pages', user?.uid)
+      await downloadImagesAsZip(items, folder?.name || 'coloring-pages', user?.uid, {
+        onProgress: (percent) => setDownloadProgress(percent),
+      })
       showToast(`Downloaded ${pagesInFolder.length} page(s) as ZIP`)
     } catch (error) {
       console.error('Download ZIP error:', error)
       showToast(error.message || 'Failed to download images as ZIP', 'error')
     } finally {
       setDownloadLoading(false)
+      setDownloadProgress(null)
     }
   }
 
@@ -103,19 +109,23 @@ export const FolderView = () => {
       return
     }
     setDownloadLoading(true)
+    setDownloadProgress(0)
     try {
       const items = pagesInFolder.map((p) => ({
         url: p.imageUrl || p.thumbnailUrl,
         title: p.title,
         id: p.id,
       }))
-      await downloadImagesAsPdf(items, folder?.name || 'coloring-pages', user?.uid)
+      await downloadImagesAsPdf(items, folder?.name || 'coloring-pages', user?.uid, {
+        onProgress: (percent) => setDownloadProgress(percent),
+      })
       showToast(`Downloaded ${pagesInFolder.length} page(s) as PDF`)
     } catch (error) {
       console.error('Download PDF error:', error)
       showToast(error.message || 'Failed to download images as PDF', 'error')
     } finally {
       setDownloadLoading(false)
+      setDownloadProgress(null)
     }
   }
 
@@ -213,19 +223,30 @@ export const FolderView = () => {
           </Typography>
 
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            <Button
-              variant="contained"
-              startIcon={downloadLoading ? <CircularProgress size={20} color="inherit" /> : <Download />}
-              onClick={handleDownloadMenuOpen}
-              disabled={isEmpty || downloadLoading}
-              sx={{
-                backgroundColor: isEmpty ? 'action.disabledBackground' : 'primary.main',
-                color: isEmpty ? 'action.disabled' : 'primary.contrastText',
-                '&:hover': isEmpty ? {} : { backgroundColor: 'primary.dark' },
-              }}
-            >
-              {downloadLoading ? 'Downloading...' : `Download all (${pagesInFolder.length})`}
-            </Button>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 0.5 }}>
+              <Button
+                variant="contained"
+                startIcon={downloadLoading ? <CircularProgress size={20} color="inherit" /> : <Download />}
+                onClick={handleDownloadMenuOpen}
+                disabled={isEmpty || downloadLoading}
+                sx={{
+                  backgroundColor: isEmpty ? 'action.disabledBackground' : 'primary.main',
+                  color: isEmpty ? 'action.disabled' : 'primary.contrastText',
+                  '&:hover': isEmpty ? {} : { backgroundColor: 'primary.dark' },
+                }}
+              >
+                {downloadLoading
+                  ? `Downloading... ${downloadProgress != null ? `${downloadProgress}%` : ''}`
+                  : `Download all (${pagesInFolder.length})`}
+              </Button>
+              {downloadLoading && downloadProgress != null && (
+                <LinearProgress
+                  variant="determinate"
+                  value={downloadProgress}
+                  sx={{ width: '100%', minWidth: 140, borderRadius: 1 }}
+                />
+              )}
+            </Box>
             <Menu
               anchorEl={downloadMenuAnchor}
               open={Boolean(downloadMenuAnchor)}

@@ -1,4 +1,4 @@
-import { zipSync } from 'fflate'
+import { downloadZip } from 'client-zip'
 import { jsPDF } from 'jspdf'
 import { trackDownload } from './analytics'
 
@@ -102,10 +102,13 @@ function loadImage(dataUrl) {
  * @param {Array<{ url: string, title: string, id?: string }>} items - Items with imageUrl, title, and optional id
  * @param {string} filename - Base filename for the PDF
  * @param {string} [userId] - User ID (for CORS-safe proxy)
+ * @param {{ onProgress?: (percent: number) => void }} [options] - Optional progress callback (0-100)
  */
-export const downloadImagesAsPdf = async (items, filename = 'coloring-pages', userId = null) => {
+export const downloadImagesAsPdf = async (items, filename = 'coloring-pages', userId = null, options = {}) => {
   if (!items?.length) return
+  const { onProgress } = options
   const baseName = (filename || 'coloring-pages').replace(/[<>:"/\\|?*]/g, '_')
+  const total = items.length
   try {
     let pdf = null
     for (let i = 0; i < items.length; i++) {
@@ -146,8 +149,11 @@ export const downloadImagesAsPdf = async (items, filename = 'coloring-pages', us
       const x = (pageW - w) / 2
       const y = (pageH - h) / 2
       pdf.addImage(dataUrl, 'PNG', x, y, w, h)
+      const percent = Math.round(((i + 1) / total) * 100)
+      onProgress?.(percent)
     }
     if (pdf) {
+      onProgress?.(100)
       pdf.save(`${baseName}.pdf`)
       trackDownload('pdf', items.length)
     }
@@ -158,21 +164,23 @@ export const downloadImagesAsPdf = async (items, filename = 'coloring-pages', us
 }
 
 /**
- * Download multiple images as a single ZIP file (one PNG per image).
- * Uses fflate for ZIP creation (standard format, good Windows compatibility).
+ * Download multiple images as a single ZIP file (one image per file).
+ * Uses client-zip (streaming, no compression) for better Windows compatibility.
  * @param {Array<{ url: string, title: string, id?: string }>} items - Items with imageUrl, title, and optional id
  * @param {string} zipFilename - Base filename for the ZIP (without .zip)
- * @param {string} [userId] - User ID (for CORS-safe proxy)
+ * @param {string} [userId] - User ID (for /image endpoint)
+ * @param {{ onProgress?: (percent: number) => void }} [options] - Optional progress callback (0-100)
  */
-export const downloadImagesAsZip = async (items, zipFilename = 'coloring-pages', userId = null) => {
+export const downloadImagesAsZip = async (items, zipFilename = 'coloring-pages', userId = null, options = {}) => {
   if (!items?.length) return
+  const { onProgress } = options
   const baseName = (zipFilename || 'coloring-pages').replace(/[<>:"/\\|?*]/g, '_')
+  const total = items.length
   try {
-    const usedNames = new Set()
-    /** @type {Record<string, [Uint8Array, { level: number }]>} - filename -> [data, options] for fflate */
-    const files = {}
+    /** @type {Array<{ name: string, input: Blob }>} - for client-zip */
+    const zipInputs = []
     for (let i = 0; i < items.length; i++) {
-      const { url, title, id } = items[i]
+      const { url, id } = items[i]
       const fetchUrl = id && userId
         ? `${API_BASE_URL}/coloring-pages/${id}/image`
         : url
@@ -190,26 +198,21 @@ export const downloadImagesAsZip = async (items, zipFilename = 'coloring-pages',
       if (blob.size === 0) {
         throw new Error(`Image ${i + 1} is empty`)
       }
-      const base = (title || `coloring-page-${i + 1}`).replace(/[<>:"/\\|?*]/g, '_').replace(/\.png$/i, '')
-      let fileName = `${base}.png`
-      let n = 1
-      while (usedNames.has(fileName)) {
-        fileName = `${base}-${n}.png`
-        n++
-      }
-      usedNames.add(fileName)
-      const arrayBuffer = await blob.arrayBuffer()
-      // level: 0 = store only (images are already compressed)
-      files[fileName] = [new Uint8Array(arrayBuffer), { level: 0 }]
+      const contentType = response.headers.get('Content-Type') || ''
+      const ext = contentType.includes('image/jpeg') || contentType.includes('image/jpg') ? 'jpg' : 'png'
+      const fileName = `image-${i + 1}.${ext}`
+      zipInputs.push({ name: fileName, input: blob })
+      const percent = Math.round(((i + 1) / total) * 90)
+      onProgress?.(percent)
       if (i < items.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 500))
       }
     }
-    const zipped = zipSync(files, { level: 0, mtime: new Date('1980-01-01') })
-    if (!zipped || zipped.length === 0) {
+    const zipBlob = await downloadZip(zipInputs).blob()
+    onProgress?.(100)
+    if (!zipBlob || zipBlob.size === 0) {
       throw new Error('Failed to generate ZIP file')
     }
-    const zipBlob = new Blob([zipped], { type: 'application/zip' })
     const url = URL.createObjectURL(zipBlob)
     const link = document.createElement('a')
     link.href = url
