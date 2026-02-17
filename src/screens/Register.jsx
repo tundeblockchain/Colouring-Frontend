@@ -78,7 +78,6 @@ export const Register = () => {
       trackSignUp('email')
       navigate(from)
     } catch (error) {
-      console.error('Registration error:', error)
       setError(error.message || 'Failed to register')
     } finally {
       setLoading(false)
@@ -137,7 +136,6 @@ export const Register = () => {
       // Success - navigate to dashboard or intended page from landing
       navigate(from)
     } catch (error) {
-      console.error('Google sign-in error:', error)
       setError(error.message || 'Failed to sign in with Google')
     } finally {
       setLoading(false)

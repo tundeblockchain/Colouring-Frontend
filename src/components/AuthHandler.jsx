@@ -46,8 +46,6 @@ export const AuthHandler = () => {
             // If user already exists (409), that's okay - just refetch
             if (error.status === 409 || error.data?.error?.includes('already exists')) {
               queryClient.invalidateQueries(['user', user.uid])
-            } else {
-              console.error('Failed to register user:', error)
             }
           },
         }

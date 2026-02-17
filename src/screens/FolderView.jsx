@@ -93,7 +93,6 @@ export const FolderView = () => {
       })
       showToast(`Downloaded ${pagesInFolder.length} page(s) as ZIP`)
     } catch (error) {
-      console.error('Download ZIP error:', error)
       showToast(error.message || 'Failed to download images as ZIP', 'error')
     } finally {
       setDownloadLoading(false)
@@ -121,7 +120,6 @@ export const FolderView = () => {
       })
       showToast(`Downloaded ${pagesInFolder.length} page(s) as PDF`)
     } catch (error) {
-      console.error('Download PDF error:', error)
       showToast(error.message || 'Failed to download images as PDF', 'error')
     } finally {
       setDownloadLoading(false)

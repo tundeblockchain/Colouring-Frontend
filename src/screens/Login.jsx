@@ -90,7 +90,6 @@ export const Login = () => {
       trackLogin('google')
       navigate('/dashboard')
     } catch (error) {
-      console.error('Google sign-in error:', error)
       setError(error.message || 'Failed to sign in with Google')
     } finally {
       setLoading(false)

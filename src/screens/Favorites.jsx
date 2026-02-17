@@ -34,7 +34,6 @@ export const Favorites = () => {
         pageId,
         userId: user.uid,
       })
-      console.log('toggleFavorite onSuccess', result.data.isFavorite)
       showToast(result.data.isFavorite ? 'Added to favourites' : 'Removed from favourites')
     } catch {
       showToast('Something went wrong', 'error')

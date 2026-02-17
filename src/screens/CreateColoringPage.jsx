@@ -111,7 +111,6 @@ export const CreateColoringPage = () => {
         alert(result.error || 'Failed to improve prompt')
       }
     } catch (err) {
-      console.error('Improve prompt error:', err)
       alert(err.message || 'Failed to improve prompt')
     } finally {
       setImproveLoading(false)
@@ -221,7 +220,6 @@ export const CreateColoringPage = () => {
         }
       }
     } catch (error) {
-      console.error('Error generating coloring page:', error)
       const errorMessage = error.message || 'Failed to generate coloring page'
       if (error.status === 402) {
         alert('Insufficient credits. Please upgrade your plan.')
