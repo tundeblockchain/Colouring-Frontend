@@ -1,5 +1,5 @@
+import { zipSync } from 'fflate'
 import { jsPDF } from 'jspdf'
-import JSZip from 'jszip'
 import { trackDownload } from './analytics'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'
@@ -159,6 +159,7 @@ export const downloadImagesAsPdf = async (items, filename = 'coloring-pages', us
 
 /**
  * Download multiple images as a single ZIP file (one PNG per image).
+ * Uses fflate for ZIP creation (standard format, good Windows compatibility).
  * @param {Array<{ url: string, title: string, id?: string }>} items - Items with imageUrl, title, and optional id
  * @param {string} zipFilename - Base filename for the ZIP (without .zip)
  * @param {string} [userId] - User ID (for CORS-safe proxy)
@@ -167,8 +168,9 @@ export const downloadImagesAsZip = async (items, zipFilename = 'coloring-pages',
   if (!items?.length) return
   const baseName = (zipFilename || 'coloring-pages').replace(/[<>:"/\\|?*]/g, '_')
   try {
-    const zip = new JSZip()
     const usedNames = new Set()
+    /** @type {Record<string, [Uint8Array, { level: number }]>} - filename -> [data, options] for fflate */
+    const files = {}
     for (let i = 0; i < items.length; i++) {
       const { url, title, id } = items[i]
       const fetchUrl = id && userId
@@ -185,7 +187,6 @@ export const downloadImagesAsZip = async (items, zipFilename = 'coloring-pages',
         throw new Error(`Failed to fetch image ${i + 1}: ${text || response.status}`)
       }
       const blob = await response.blob()
-      // Validate blob is actually an image (check size)
       if (blob.size === 0) {
         throw new Error(`Image ${i + 1} is empty`)
       }
@@ -197,23 +198,18 @@ export const downloadImagesAsZip = async (items, zipFilename = 'coloring-pages',
         n++
       }
       usedNames.add(fileName)
-      // Convert blob to ArrayBuffer for JSZip (more reliable than passing blob directly)
       const arrayBuffer = await blob.arrayBuffer()
-      zip.file(fileName, arrayBuffer)
-      // Wait 0.5 seconds between requests to avoid API throttle limits (skip delay after last item)
+      // level: 0 = store only (images are already compressed)
+      files[fileName] = [new Uint8Array(arrayBuffer), { level: 0 }]
       if (i < items.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 500))
       }
     }
-    // Generate ZIP with explicit options for compatibility
-    const zipBlob = await zip.generateAsync({ 
-      type: 'blob',
-      compression: 'DEFLATE',
-      compressionOptions: { level: 6 }
-    })
-    if (!zipBlob || zipBlob.size === 0) {
+    const zipped = zipSync(files, { level: 0, mtime: new Date(0) })
+    if (!zipped || zipped.length === 0) {
       throw new Error('Failed to generate ZIP file')
     }
+    const zipBlob = new Blob([zipped], { type: 'application/zip' })
     const url = URL.createObjectURL(zipBlob)
     const link = document.createElement('a')
     link.href = url
