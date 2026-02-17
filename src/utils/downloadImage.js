@@ -180,7 +180,15 @@ export const downloadImagesAsZip = async (items, zipFilename = 'coloring-pages',
         headers['Accept'] = 'image/png, image/jpeg'
       }
       const response = await fetch(fetchUrl, { headers: Object.keys(headers).length ? headers : undefined })
+      if (!response.ok) {
+        const text = await response.text()
+        throw new Error(`Failed to fetch image ${i + 1}: ${text || response.status}`)
+      }
       const blob = await response.blob()
+      // Validate blob is actually an image (check size)
+      if (blob.size === 0) {
+        throw new Error(`Image ${i + 1} is empty`)
+      }
       const base = (title || `coloring-page-${i + 1}`).replace(/[<>:"/\\|?*]/g, '_').replace(/\.png$/i, '')
       let fileName = `${base}.png`
       let n = 1
@@ -189,13 +197,23 @@ export const downloadImagesAsZip = async (items, zipFilename = 'coloring-pages',
         n++
       }
       usedNames.add(fileName)
-      zip.file(fileName, blob)
+      // Convert blob to ArrayBuffer for JSZip (more reliable than passing blob directly)
+      const arrayBuffer = await blob.arrayBuffer()
+      zip.file(fileName, arrayBuffer)
       // Wait 0.5 seconds between requests to avoid API throttle limits (skip delay after last item)
       if (i < items.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 500))
       }
     }
-    const zipBlob = await zip.generateAsync({ type: 'blob' })
+    // Generate ZIP with explicit options for compatibility
+    const zipBlob = await zip.generateAsync({ 
+      type: 'blob',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 6 }
+    })
+    if (!zipBlob || zipBlob.size === 0) {
+      throw new Error('Failed to generate ZIP file')
+    }
     const url = URL.createObjectURL(zipBlob)
     const link = document.createElement('a')
     link.href = url
