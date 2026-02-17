@@ -190,6 +190,10 @@ export const downloadImagesAsZip = async (items, zipFilename = 'coloring-pages',
       }
       usedNames.add(fileName)
       zip.file(fileName, blob)
+      // Wait 0.5 seconds between requests to avoid API throttle limits (skip delay after last item)
+      if (i < items.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
     }
     const zipBlob = await zip.generateAsync({ type: 'blob' })
     const url = URL.createObjectURL(zipBlob)
