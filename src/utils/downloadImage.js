@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf'
+import JSZip from 'jszip'
 import { trackDownload } from './analytics'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'
@@ -106,7 +107,6 @@ export const downloadImagesAsPdf = async (items, filename = 'coloring-pages', us
   if (!items?.length) return
   const baseName = (filename || 'coloring-pages').replace(/[<>:"/\\|?*]/g, '_')
   try {
-    const { jsPDF } = await import('jspdf')
     let pdf = null
     for (let i = 0; i < items.length; i++) {
       const { url, title, id } = items[i]
@@ -167,7 +167,6 @@ export const downloadImagesAsZip = async (items, zipFilename = 'coloring-pages',
   if (!items?.length) return
   const baseName = (zipFilename || 'coloring-pages').replace(/[<>:"/\\|?*]/g, '_')
   try {
-    const JSZip = (await import('jszip')).default
     const zip = new JSZip()
     const usedNames = new Set()
     for (let i = 0; i < items.length; i++) {
