@@ -205,7 +205,7 @@ export const downloadImagesAsZip = async (items, zipFilename = 'coloring-pages',
         await new Promise(resolve => setTimeout(resolve, 500))
       }
     }
-    const zipped = zipSync(files, { level: 0, mtime: new Date(0) })
+    const zipped = zipSync(files, { level: 0, mtime: new Date('1980-01-01') })
     if (!zipped || zipped.length === 0) {
       throw new Error('Failed to generate ZIP file')
     }
