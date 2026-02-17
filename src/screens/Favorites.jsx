@@ -11,6 +11,7 @@ import { MainLayout } from '../components/Layout/MainLayout'
 import { ColoringPageCard } from '../components/ColoringPageCard'
 import { useToast } from '../contexts/ToastContext'
 import { useAuth } from '../hooks/useAuth'
+import { useUser } from '../hooks/useUser'
 import { useColoringPages, useToggleFavorite } from '../hooks/useColoringPages'
 
 export const Favorites = () => {
