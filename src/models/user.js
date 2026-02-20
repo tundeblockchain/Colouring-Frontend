@@ -18,7 +18,7 @@ export class User {
     this.plan = data.plan || 'free' // free, starter, hobby, artist, business
     this.subscriptionStatus = data.subscriptionStatus ?? null // active, canceled, past_due, trialing, etc.
     this.stripeSubscriptionId = data.stripeSubscriptionId ?? data.stripe_subscription_id ?? null
-    this.currentPeriodEnd = data.currentPeriodEnd ?? null // ISO date when current period ends
+    this.currentPeriodEnd = data.currentPeriodEnd ?? data.current_period_end ?? null // ISO date when current period ends (next refill/billing)
     this.cancelAtPeriodEnd = data.cancelAtPeriodEnd ?? false
   }
 }

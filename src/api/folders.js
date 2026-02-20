@@ -81,6 +81,31 @@ export const deleteFolder = async (userId, folderId) => {
 }
 
 /**
+ * Set the order of coloring pages inside a folder.
+ * PUT /api/folders/:folderId/page-order
+ * @param {string} userId - Firebase user ID
+ * @param {string} folderId - Folder ID
+ * @param {string[]} pageIds - Array of coloring page IDs in desired order
+ */
+export const setFolderPageOrder = async (userId, folderId, pageIds) => {
+  if (!folderId || !Array.isArray(pageIds)) {
+    return { success: false, error: 'folderId and pageIds are required' }
+  }
+  const result = await apiRequest(`/folders/${folderId}/page-order`, {
+    method: 'PUT',
+    userId,
+    body: { pageIds },
+  })
+  if (result.success && result.data) {
+    return {
+      success: true,
+      data: result.data,
+    }
+  }
+  return result
+}
+
+/**
  * Create folder
  */
 export const createFolder = async (userId, folderData) => {

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getUserFolders, createFolder, updateFolder, deleteFolder } from '../api/folders'
+import { getUserFolders, createFolder, updateFolder, deleteFolder, setFolderPageOrder } from '../api/folders'
 
 export const useFolders = (userId) => {
   return useQuery({
@@ -45,6 +45,19 @@ export const useDeleteFolder = () => {
 
   return useMutation({
     mutationFn: ({ userId, folderId }) => deleteFolder(userId, folderId),
+    onSuccess: (result, variables) => {
+      queryClient.invalidateQueries(['folders', variables.userId])
+      queryClient.invalidateQueries(['coloringPages', variables.userId])
+      return result
+    },
+  })
+}
+
+export const useSetFolderPageOrder = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ userId, folderId, pageIds }) => setFolderPageOrder(userId, folderId, pageIds),
     onSuccess: (result, variables) => {
       queryClient.invalidateQueries(['folders', variables.userId])
       queryClient.invalidateQueries(['coloringPages', variables.userId])

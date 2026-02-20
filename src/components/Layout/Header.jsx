@@ -25,6 +25,7 @@ import {
   ConfirmationNumberOutlined,
   ScheduleOutlined,
   WorkspacePremiumOutlined,
+  EventOutlined,
 } from '@mui/icons-material'
 import { useUser } from '../../hooks/useUser'
 import { useColoringPages } from '../../hooks/useColoringPages'
@@ -58,6 +59,10 @@ export const Header = ({ user }) => {
     userProfile?.creditsUsedTotal ??
     (planCredits != null ? Math.max(0, planCredits - creditsRemaining) : 0)
   const planLabel = userProfile?.plan === 'free' || !userProfile?.plan ? 'Free Trial' : (userProfile?.plan ?? 'Free Trial')
+  const isPaidPlan = (userProfile?.plan || '').toLowerCase() !== 'free'
+  const nextRefillDate = userProfile?.currentPeriodEnd
+    ? new Date(userProfile.currentPeriodEnd).toLocaleDateString(undefined, { dateStyle: 'medium' })
+    : null
 
   const isOnGallery = location.pathname === '/gallery'
   const showSearchPopover = !isOnGallery && searchQuery.length > 0
@@ -342,6 +347,19 @@ export const Header = ({ user }) => {
                 {creditsRemaining}
               </Typography>
             </Box>
+            {isPaidPlan && nextRefillDate && (
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <EventOutlined sx={{ color: 'text.secondary', fontSize: 20 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    Next refill date
+                  </Typography>
+                </Box>
+                <Typography variant="body2" fontWeight={600}>
+                  {nextRefillDate}
+                </Typography>
+              </Box>
+            )}
           </Box>
           <Typography variant="caption" display="block" color="text.secondary" sx={{ mb: 2 }}>
             Standard quality: 2 credits per image. Fast/quick: 1 credit per image.

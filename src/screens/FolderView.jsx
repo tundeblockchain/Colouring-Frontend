@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -25,10 +25,12 @@ import { MainLayout } from '../components/Layout/MainLayout'
 import { ColoringPageCard } from '../components/ColoringPageCard'
 import { useAuth } from '../hooks/useAuth'
 import { useUser } from '../hooks/useUser'
-import { useFolders, useUpdateFolder, useDeleteFolder } from '../hooks/useFolders'
+import { useFolders, useUpdateFolder, useDeleteFolder, useSetFolderPageOrder } from '../hooks/useFolders'
 import { useColoringPages, useToggleFavorite } from '../hooks/useColoringPages'
 import { useToast } from '../contexts/ToastContext'
 import { downloadImage, downloadImagesAsPdf, downloadImagesAsZip } from '../utils/downloadImage'
+
+const DRAG_TYPE = 'application/x-coloring-page-id'
 
 export const FolderView = () => {
   const { folderId } = useParams()
@@ -42,11 +44,9 @@ export const FolderView = () => {
   const { data: allPages = [], isLoading: pagesLoading } = useColoringPages(user?.uid, {
     folderId: folderId || undefined,
   })
-  const pagesInFolder = folderId
-    ? allPages.filter((p) => p.folderId === folderId)
-    : allPages
   const updateFolderMutation = useUpdateFolder()
   const deleteFolderMutation = useDeleteFolder()
+  const setFolderPageOrderMutation = useSetFolderPageOrder()
   const toggleFavoriteMutation = useToggleFavorite()
 
   const folder = folders.find((f) => f.id === folderId)
@@ -56,6 +56,53 @@ export const FolderView = () => {
   const [downloadMenuAnchor, setDownloadMenuAnchor] = useState(null)
   const [downloadLoading, setDownloadLoading] = useState(false)
   const [downloadProgress, setDownloadProgress] = useState(null)
+  const [orderedPages, setOrderedPages] = useState([])
+  const [dragOverIndex, setDragOverIndex] = useState(null)
+
+  const pagesInFolder = folderId
+    ? allPages.filter((p) => p.folderId === folderId)
+    : allPages
+
+  useEffect(() => {
+    const inFolder = folderId
+      ? allPages.filter((p) => p.folderId === folderId)
+      : allPages
+    if (inFolder.length === 0) {
+      setOrderedPages([])
+      return
+    }
+    setOrderedPages((prev) => {
+      const byId = Object.fromEntries(inFolder.map((p) => [p.id, p]))
+      const prevIds = prev.map((p) => p.id).filter((id) => byId[id])
+      const newIds = inFolder.map((p) => p.id).filter((id) => !prevIds.includes(id))
+      const orderedIds = [...prevIds, ...newIds]
+      return orderedIds.map((id) => byId[id]).filter(Boolean)
+    })
+  }, [folderId, allPages])
+
+  const handleReorder = useCallback(
+    async (draggedId, toIndex) => {
+      const prevOrder = orderedPages.slice()
+      const fromIndex = prevOrder.findIndex((p) => p.id === draggedId)
+      if (fromIndex === -1 || fromIndex === toIndex) return
+      const next = prevOrder.slice()
+      const [removed] = next.splice(fromIndex, 1)
+      next.splice(toIndex, 0, removed)
+      setOrderedPages(next)
+      if (!user?.uid || !folderId) return
+      try {
+        await setFolderPageOrderMutation.mutateAsync({
+          userId: user.uid,
+          folderId,
+          pageIds: next.map((p) => p.id),
+        })
+      } catch {
+        showToast('Failed to save order', 'error')
+        setOrderedPages(prevOrder)
+      }
+    },
+    [orderedPages, user?.uid, folderId, setFolderPageOrderMutation, showToast]
+  )
 
   const handleToggleFavorite = async (pageId) => {
     if (!user?.uid) return
@@ -79,11 +126,11 @@ export const FolderView = () => {
 
   const handleDownloadAllAsPng = async () => {
     handleDownloadMenuClose()
-    if (pagesInFolder.length === 0) return
+    if (orderedPages.length === 0) return
     setDownloadLoading(true)
     setDownloadProgress(0)
     try {
-      const items = pagesInFolder.map((p) => ({
+      const items = orderedPages.map((p) => ({
         url: p.imageUrl || p.thumbnailUrl,
         title: p.title,
         id: p.id,
@@ -91,7 +138,7 @@ export const FolderView = () => {
       await downloadImagesAsZip(items, folder?.name || 'coloring-pages', user?.uid, {
         onProgress: (percent) => setDownloadProgress(percent),
       })
-      showToast(`Downloaded ${pagesInFolder.length} page(s) as ZIP`)
+      showToast(`Downloaded ${orderedPages.length} page(s) as ZIP`)
     } catch (error) {
       showToast(error.message || 'Failed to download images as ZIP', 'error')
     } finally {
@@ -102,7 +149,7 @@ export const FolderView = () => {
 
   const handleDownloadAllAsPdf = async () => {
     handleDownloadMenuClose()
-    if (pagesInFolder.length === 0) return
+    if (orderedPages.length === 0) return
     if (!canDownloadPdf) {
       showToast('Download as PDF is available on Hobby, Artist and Business plans. Upgrade to unlock this feature.', 'info')
       return
@@ -110,7 +157,7 @@ export const FolderView = () => {
     setDownloadLoading(true)
     setDownloadProgress(0)
     try {
-      const items = pagesInFolder.map((p) => ({
+      const items = orderedPages.map((p) => ({
         url: p.imageUrl || p.thumbnailUrl,
         title: p.title,
         id: p.id,
@@ -118,7 +165,7 @@ export const FolderView = () => {
       await downloadImagesAsPdf(items, folder?.name || 'coloring-pages', user?.uid, {
         onProgress: (percent) => setDownloadProgress(percent),
       })
-      showToast(`Downloaded ${pagesInFolder.length} page(s) as PDF`)
+      showToast(`Downloaded ${orderedPages.length} page(s) as PDF`)
     } catch (error) {
       showToast(error.message || 'Failed to download images as PDF', 'error')
     } finally {
@@ -235,7 +282,7 @@ export const FolderView = () => {
               >
                 {downloadLoading
                   ? `Downloading... ${downloadProgress != null ? `${downloadProgress}%` : ''}`
-                  : `Download all (${pagesInFolder.length})`}
+                  : `Download all (${orderedPages.length})`}
               </Button>
               {downloadLoading && downloadProgress != null && (
                 <LinearProgress
@@ -317,15 +364,39 @@ export const FolderView = () => {
         </Card>
       ) : (
         <Grid container spacing={3}>
-          {pagesInFolder.map((page) => (
+          {orderedPages.map((page, index) => (
             <Grid item xs={12} sm={6} md={4} lg={3} key={page.id}>
-              <ColoringPageCard
-                page={page}
-                onToggleFavorite={handleToggleFavorite}
-                isFavoritePending={toggleFavoriteMutation.isPending}
-                canDownloadPdf={canDownloadPdf}
-                userId={user?.uid}
-              />
+              <Box
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  e.dataTransfer.dropEffect = 'move'
+                  setDragOverIndex(index)
+                }}
+                onDragLeave={() => setDragOverIndex(null)}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  setDragOverIndex(null)
+                  const draggedId = e.dataTransfer.getData(DRAG_TYPE)
+                  if (draggedId) handleReorder(draggedId, index)
+                }}
+                sx={{
+                  outline: dragOverIndex === index ? '3px dashed' : 'none',
+                  outlineColor: 'primary.main',
+                  outlineOffset: dragOverIndex === index ? 4 : 0,
+                  borderRadius: 2,
+                  transition: 'outline 0.15s ease, outline-offset 0.15s ease, background-color 0.15s ease',
+                  backgroundColor: dragOverIndex === index ? 'action.hover' : 'transparent',
+                }}
+              >
+                <ColoringPageCard
+                  page={page}
+                  onToggleFavorite={handleToggleFavorite}
+                  isFavoritePending={toggleFavoriteMutation.isPending}
+                  canDownloadPdf={canDownloadPdf}
+                  userId={user?.uid}
+                  draggable
+                />
+              </Box>
             </Grid>
           ))}
         </Grid>

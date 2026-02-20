@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Card, CardMedia, CardContent, IconButton, Typography, Menu, MenuItem, Checkbox, CircularProgress } from '@mui/material'
+import { Card, CardMedia, CardContent, IconButton, Typography, Menu, MenuItem, Checkbox, CircularProgress, useTheme } from '@mui/material'
 import { Favorite, Download } from '@mui/icons-material'
 import { downloadImage } from '../utils/downloadImage'
 import { useToast } from '../contexts/ToastContext'
@@ -50,6 +50,7 @@ export const ColoringPageCard = ({
   userId,
 }) => {
   const imageUrl = page.imageUrl || page.thumbnailUrl
+  const theme = useTheme()
   const { showToast } = useToast()
   const [downloadAnchor, setDownloadAnchor] = useState(null)
   const [downloadLoading, setDownloadLoading] = useState(false)
@@ -84,11 +85,23 @@ export const ColoringPageCard = ({
       e.dataTransfer.setData(DRAG_TYPE, page.id)
       e.dataTransfer.effectAllowed = 'move'
     }
-    e.currentTarget.style.opacity = '0.5'
+    const el = e.currentTarget
+    el.style.opacity = '0.85'
+    el.style.transform = 'scale(1.05)'
+    el.style.boxShadow = '0 12px 24px rgba(0,0,0,0.35)'
+    el.style.zIndex = '1000'
+    el.style.border = '3px solid'
+    el.style.borderColor = theme.palette.primary.main
   }
 
   const handleDragEnd = (e) => {
-    e.currentTarget.style.opacity = '1'
+    const el = e.currentTarget
+    el.style.opacity = ''
+    el.style.transform = ''
+    el.style.boxShadow = ''
+    el.style.zIndex = ''
+    el.style.border = ''
+    el.style.borderColor = ''
   }
 
   return (
