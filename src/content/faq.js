@@ -20,6 +20,10 @@ export const faqItems = [
     a: 'You can start with a free trial that includes credits to try our text and word art features. When you need more, choose a plan that fits how much you create.',
   },
   {
+    q: 'How many credits does each image use?',
+    a: 'Standard quality images use 2 credits per image. Fast or quick quality images use 1 credit per image.',
+  },
+  {
     q: 'Can I print the colouring pages?',
     a: 'Yes. Every page you create can be downloaded and printed. Use them at home, in the classroom, or for your own projects.',
   },

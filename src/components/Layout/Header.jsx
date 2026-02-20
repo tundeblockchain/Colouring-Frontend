@@ -343,6 +343,9 @@ export const Header = ({ user }) => {
               </Typography>
             </Box>
           </Box>
+          <Typography variant="caption" display="block" color="text.secondary" sx={{ mb: 2 }}>
+            Standard quality: 2 credits per image. Fast/quick: 1 credit per image.
+          </Typography>
           <Box
             component="a"
             href="#"

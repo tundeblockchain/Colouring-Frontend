@@ -147,8 +147,10 @@ export const CreateColoringPage = () => {
     }
 
     const count = Math.min(6, Math.max(1, numImages))
-    if (userProfile.credits < count) {
-      alert(`Insufficient credits. You need ${count} credit(s). Please upgrade your plan.`)
+    const creditsPerImage = quality === 'fast' ? 1 : 2
+    const requiredCredits = count * creditsPerImage
+    if (userProfile.credits < requiredCredits) {
+      alert(`Insufficient credits. You need ${requiredCredits} credit(s) for this generation (standard: 2 per image, fast: 1 per image). Please upgrade your plan.`)
       return
     }
 

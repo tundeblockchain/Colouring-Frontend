@@ -186,7 +186,7 @@ export const AddOneTimeCredits = () => {
               </Typography>
             </Box>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Your available credits for generating coloring pages
+              Your available credits for generating coloring pages. Standard quality uses 2 credits per image; fast/quick uses 1 credit per image.
             </Typography>
             <Grid container spacing={3}>
               <Grid item xs={6} sm={3}>

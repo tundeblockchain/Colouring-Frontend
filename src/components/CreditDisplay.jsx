@@ -24,7 +24,7 @@ export const CreditDisplay = ({ credits, onRefresh }) => {
           <Refresh fontSize="small" sx={{ color: 'primary.dark' }} />
         </IconButton>
       )}
-      <Tooltip title="Credits are used when generating coloring pages">
+      <Tooltip title="Standard quality: 2 credits per image. Fast/quick quality: 1 credit per image.">
         <IconButton size="small">
           <Info fontSize="small" sx={{ color: 'primary.dark' }} />
         </IconButton>
