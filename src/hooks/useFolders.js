@@ -60,7 +60,7 @@ export const useSetFolderPageOrder = () => {
     mutationFn: ({ userId, folderId, pageIds }) => setFolderPageOrder(userId, folderId, pageIds),
     onSuccess: (result, variables) => {
       queryClient.invalidateQueries(['folders', variables.userId])
-      queryClient.invalidateQueries(['coloringPages', variables.userId])
+      // Don't invalidate coloringPages here so local reorder state isn't overwritten by refetch
       return result
     },
   })

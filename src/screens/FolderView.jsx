@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -19,6 +19,7 @@ import {
   TextField,
   CircularProgress,
   LinearProgress,
+  Pagination,
 } from '@mui/material'
 import { ArrowBack, Download, Edit, Delete, Close } from '@mui/icons-material'
 import { MainLayout } from '../components/Layout/MainLayout'
@@ -31,6 +32,7 @@ import { useToast } from '../contexts/ToastContext'
 import { downloadImage, downloadImagesAsPdf, downloadImagesAsZip } from '../utils/downloadImage'
 
 const DRAG_TYPE = 'application/x-coloring-page-id'
+const FOLDER_PAGE_SIZE = 24
 
 export const FolderView = () => {
   const { folderId } = useParams()
@@ -58,6 +60,7 @@ export const FolderView = () => {
   const [downloadProgress, setDownloadProgress] = useState(null)
   const [orderedPages, setOrderedPages] = useState([])
   const [dragOverIndex, setDragOverIndex] = useState(null)
+  const [page, setPage] = useState(1)
 
   const pagesInFolder = folderId
     ? allPages.filter((p) => p.folderId === folderId)
@@ -87,7 +90,8 @@ export const FolderView = () => {
       if (fromIndex === -1 || fromIndex === toIndex) return
       const next = prevOrder.slice()
       const [removed] = next.splice(fromIndex, 1)
-      next.splice(toIndex, 0, removed)
+      const insertIndex = fromIndex < toIndex ? toIndex - 1 : toIndex
+      next.splice(insertIndex, 0, removed)
       setOrderedPages(next)
       if (!user?.uid || !folderId) return
       try {
@@ -103,6 +107,16 @@ export const FolderView = () => {
     },
     [orderedPages, user?.uid, folderId, setFolderPageOrderMutation, showToast]
   )
+
+  const folderPageCount = Math.max(1, Math.ceil(orderedPages.length / FOLDER_PAGE_SIZE))
+  const paginatedPages = useMemo(() => {
+    const start = (page - 1) * FOLDER_PAGE_SIZE
+    return orderedPages.slice(start, start + FOLDER_PAGE_SIZE)
+  }, [orderedPages, page])
+
+  useEffect(() => {
+    if (page > folderPageCount) setPage(1)
+  }, [page, folderPageCount])
 
   const handleToggleFavorite = async (pageId) => {
     if (!user?.uid) return
@@ -363,43 +377,65 @@ export const FolderView = () => {
           </CardContent>
         </Card>
       ) : (
-        <Grid container spacing={3}>
-          {orderedPages.map((page, index) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={page.id}>
-              <Box
-                onDragOver={(e) => {
-                  e.preventDefault()
-                  e.dataTransfer.dropEffect = 'move'
-                  setDragOverIndex(index)
-                }}
-                onDragLeave={() => setDragOverIndex(null)}
-                onDrop={(e) => {
-                  e.preventDefault()
-                  setDragOverIndex(null)
-                  const draggedId = e.dataTransfer.getData(DRAG_TYPE)
-                  if (draggedId) handleReorder(draggedId, index)
-                }}
-                sx={{
-                  outline: dragOverIndex === index ? '3px dashed' : 'none',
-                  outlineColor: 'primary.main',
-                  outlineOffset: dragOverIndex === index ? 4 : 0,
-                  borderRadius: 2,
-                  transition: 'outline 0.15s ease, outline-offset 0.15s ease, background-color 0.15s ease',
-                  backgroundColor: dragOverIndex === index ? 'action.hover' : 'transparent',
-                }}
-              >
-                <ColoringPageCard
-                  page={page}
-                  onToggleFavorite={handleToggleFavorite}
-                  isFavoritePending={toggleFavoriteMutation.isPending}
-                  canDownloadPdf={canDownloadPdf}
-                  userId={user?.uid}
-                  draggable
-                />
-              </Box>
-            </Grid>
-          ))}
-        </Grid>
+        <>
+          <Grid container spacing={3}>
+            {paginatedPages.map((card, index) => {
+              const globalIndex = (page - 1) * FOLDER_PAGE_SIZE + index
+              return (
+                <Grid item xs={12} sm={6} md={4} lg={3} key={card.id}>
+                  <Box
+                    onDragOver={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      e.dataTransfer.dropEffect = 'move'
+                      setDragOverIndex(globalIndex)
+                    }}
+                    onDragLeave={(e) => {
+                      e.stopPropagation()
+                      setDragOverIndex(null)
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setDragOverIndex(null)
+                      const draggedId = e.dataTransfer.getData(DRAG_TYPE)
+                      if (draggedId) handleReorder(draggedId, globalIndex)
+                    }}
+                    sx={{
+                      outline: dragOverIndex === globalIndex ? '3px dashed' : 'none',
+                      outlineColor: 'primary.main',
+                      outlineOffset: dragOverIndex === globalIndex ? 4 : 0,
+                      borderRadius: 2,
+                      transition: 'outline 0.15s ease, outline-offset 0.15s ease, background-color 0.15s ease',
+                      backgroundColor: dragOverIndex === globalIndex ? 'action.hover' : 'transparent',
+                    }}
+                  >
+                    <ColoringPageCard
+                      page={card}
+                      onToggleFavorite={handleToggleFavorite}
+                      isFavoritePending={toggleFavoriteMutation.isPending}
+                      canDownloadPdf={canDownloadPdf}
+                      userId={user?.uid}
+                      draggable
+                    />
+                  </Box>
+                </Grid>
+              )
+            })}
+          </Grid>
+          {folderPageCount > 1 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+              <Pagination
+                count={folderPageCount}
+                page={page}
+                onChange={(_, value) => setPage(value)}
+                color="primary"
+                showFirstButton
+                showLastButton
+              />
+            </Box>
+          )}
+        </>
       )}
 
       <Dialog open={renameOpen} onClose={handleCloseRename} maxWidth="sm" fullWidth>

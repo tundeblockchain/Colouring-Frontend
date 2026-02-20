@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Box,
@@ -11,6 +11,7 @@ import {
   ListItemIcon,
   CircularProgress,
   LinearProgress,
+  Pagination,
 } from '@mui/material'
 import { Folder as FolderIcon, Close, DriveFileMove } from '@mui/icons-material'
 import { MainLayout } from '../components/Layout/MainLayout'
@@ -23,6 +24,7 @@ import { useFolders } from '../hooks/useFolders'
 
 const DRAG_TYPE = 'application/x-coloring-page-id'
 const DRAG_TYPE_IDS = 'application/x-coloring-page-ids'
+const GALLERY_PAGE_SIZE = 24
 
 export const Gallery = () => {
   const navigate = useNavigate()
@@ -40,11 +42,25 @@ export const Gallery = () => {
   const filteredPages = useMemo(() => {
     if (!searchQuery) return coloringPages
     return coloringPages.filter(
-      (page) =>
-        page.title?.toLowerCase().includes(searchQuery) ||
-        page.prompt?.toLowerCase().includes(searchQuery)
+      (p) =>
+        p.title?.toLowerCase().includes(searchQuery) ||
+        p.prompt?.toLowerCase().includes(searchQuery)
     )
   }, [coloringPages, searchQuery])
+
+  const [page, setPage] = useState(1)
+  const pageCount = Math.max(1, Math.ceil(filteredPages.length / GALLERY_PAGE_SIZE))
+  const paginatedPages = useMemo(() => {
+    const start = (page - 1) * GALLERY_PAGE_SIZE
+    return filteredPages.slice(start, start + GALLERY_PAGE_SIZE)
+  }, [filteredPages, page])
+
+  useEffect(() => {
+    if (page > pageCount) setPage(1)
+  }, [page, pageCount])
+  useEffect(() => {
+    setPage(1)
+  }, [searchQuery])
 
   const [dragOverFolderId, setDragOverFolderId] = useState(null)
   const [selectedIds, setSelectedIds] = useState(new Set())
@@ -334,27 +350,39 @@ export const Gallery = () => {
             </Box>
           )}
           <Grid container spacing={3}>
-            {filteredPages.map((page) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={page.id}>
+            {paginatedPages.map((card) => (
+              <Grid item xs={12} sm={6} md={4} lg={3} key={card.id}>
                 <ColoringPageCard
-                  page={page}
+                  page={card}
                   onToggleFavorite={handleToggleFavorite}
                   isFavoritePending={toggleFavoriteMutation.isPending}
                   draggable={folders.length > 0 && !moveToFolderMutation.isPending}
                   canDownloadPdf={canDownloadPdf}
                   selectable={folders.length > 0}
-                  selected={selectedIds.has(page.id)}
-                  onSelect={() => handleSelectPage(page.id)}
+                  selected={selectedIds.has(card.id)}
+                  onSelect={() => handleSelectPage(card.id)}
                   userId={user?.uid}
                   onDragStart={
                     folders.length > 0 && !moveToFolderMutation.isPending
-                      ? (ev) => handleCardDragStart(ev, page)
+                      ? (ev) => handleCardDragStart(ev, card)
                       : undefined
                   }
                 />
               </Grid>
             ))}
           </Grid>
+          {pageCount > 1 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+              <Pagination
+                count={pageCount}
+                page={page}
+                onChange={(_, value) => setPage(value)}
+                color="primary"
+                showFirstButton
+                showLastButton
+              />
+            </Box>
+          )}
         </>
       )}
     </MainLayout>
