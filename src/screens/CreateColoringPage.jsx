@@ -721,17 +721,6 @@ export const CreateColoringPage = () => {
                     disabled={!canGenerateMultiple}
                   />
                 </Box>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={autoUpscale}
-                      onChange={(e) => setAutoUpscale(e.target.checked)}
-                      size="small"
-                      disabled={!canGenerateMultiple}
-                    />
-                  }
-                  label="Auto upscale"
-                />
                 {isFreePlan && (
                   <Alert severity="info" sx={{ marginTop: 2 }}>
                     Upgrade to the Artist plan to generate more than 1 image at a time, automatically upscale your images and more!
