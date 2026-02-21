@@ -62,6 +62,7 @@ export const FolderView = () => {
   const [orderedPages, setOrderedPages] = useState([])
   const [dragOverIndex, setDragOverIndex] = useState(null)
   const [dragOverZone, setDragOverZone] = useState(null) // 'prev' | 'next' | null
+  const [isMovingAcrossPages, setIsMovingAcrossPages] = useState(false)
   const [page, setPage] = useState(1)
 
   const pagesInFolder = folderId
@@ -400,7 +401,31 @@ export const FolderView = () => {
           </CardContent>
         </Card>
       ) : (
-        <>
+        <Box sx={{ position: 'relative' }}>
+          {isMovingAcrossPages && (
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 2,
+                bgcolor: 'rgba(255, 255, 255, 0.85)',
+                zIndex: 10,
+                borderRadius: 2,
+              }}
+            >
+              <CircularProgress size={48} />
+              <Typography variant="body1" color="text.secondary">
+                Moving image…
+              </Typography>
+            </Box>
+          )}
           {folderPageCount > 1 && page > 1 && (
             <Box
               onDragOver={(e) => {
@@ -420,6 +445,7 @@ export const FolderView = () => {
                 setDragOverZone(null)
                 const draggedId = e.dataTransfer.getData(DRAG_TYPE)
                 if (draggedId) {
+                  setIsMovingAcrossPages(true)
                   try {
                     const toIndex = (page - 1) * FOLDER_PAGE_SIZE - 1
                     await handleReorder(draggedId, toIndex)
@@ -427,6 +453,8 @@ export const FolderView = () => {
                     setPage(page - 1)
                   } catch {
                     // handleReorder already shows error toast
+                  } finally {
+                    setIsMovingAcrossPages(false)
                   }
                 }
               }}
@@ -519,6 +547,7 @@ export const FolderView = () => {
                 setDragOverZone(null)
                 const draggedId = e.dataTransfer.getData(DRAG_TYPE)
                 if (draggedId) {
+                  setIsMovingAcrossPages(true)
                   try {
                     const toIndex = page * FOLDER_PAGE_SIZE
                     await handleReorder(draggedId, toIndex)
@@ -526,6 +555,8 @@ export const FolderView = () => {
                     setPage(page + 1)
                   } catch {
                     // handleReorder already shows error toast
+                  } finally {
+                    setIsMovingAcrossPages(false)
                   }
                 }
               }}
@@ -563,7 +594,7 @@ export const FolderView = () => {
               />
             </Box>
           )}
-        </>
+        </Box>
       )}
 
       <Dialog open={renameOpen} onClose={handleCloseRename} maxWidth="sm" fullWidth>
