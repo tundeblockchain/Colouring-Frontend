@@ -32,7 +32,7 @@ import { useToast } from '../contexts/ToastContext'
 import { downloadImage, downloadImagesAsPdf, downloadImagesAsZip } from '../utils/downloadImage'
 
 const DRAG_TYPE = 'application/x-coloring-page-id'
-const FOLDER_PAGE_SIZE = 24
+const FOLDER_PAGE_SIZE = 50
 
 export const FolderView = () => {
   const { folderId } = useParams()

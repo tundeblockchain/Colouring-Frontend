@@ -24,7 +24,7 @@ import { useFolders } from '../hooks/useFolders'
 
 const DRAG_TYPE = 'application/x-coloring-page-id'
 const DRAG_TYPE_IDS = 'application/x-coloring-page-ids'
-const GALLERY_PAGE_SIZE = 24
+const GALLERY_PAGE_SIZE = 50
 
 export const Gallery = () => {
   const navigate = useNavigate()
