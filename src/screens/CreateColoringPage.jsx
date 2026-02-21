@@ -73,7 +73,9 @@ export const CreateColoringPage = () => {
       ? 'simple lines'
       : effectiveInitialTab === 'frontCover'
         ? 'magical forest colouring book cover'
-        : 'fancy anime footballer'
+        : effectiveInitialTab === 'wordArt'
+          ? '"Foodie" title with food around it'
+          : 'fancy anime footballer'
   )
   const [improveLoading, setImproveLoading] = useState(false)
   const [quality, setQuality] = useState('fast')
@@ -95,6 +97,7 @@ export const CreateColoringPage = () => {
     setPhotoFile(null)
     if (newValue === 'photo') setPrompt('simple lines')
     if (newValue === 'frontCover') setPrompt('magical forest colouring book cover')
+    if (newValue === 'wordArt') setPrompt('"Foodie Vol 1" title with food around it')
     setActiveTab(newValue)
     const tabPath = Object.keys(tabTypes).find(key => tabTypes[key] === newValue)
     navigate(`/create/${tabPath}`)

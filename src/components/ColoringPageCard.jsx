@@ -111,11 +111,12 @@ export const ColoringPageCard = ({
       draggable={isDraggable}
       onDragStart={isDraggable ? handleDragStart : undefined}
       onDragEnd={isDraggable ? handleDragEnd : undefined}
+      onClick={selectable ? () => onSelect?.() : undefined}
       sx={{
         position: 'relative',
         transition: 'transform 0.2s, box-shadow 0.2s',
-        cursor: isDraggable ? 'grab' : undefined,
-        '&:active': isDraggable ? { cursor: 'grabbing' } : undefined,
+        cursor: selectable ? 'pointer' : isDraggable ? 'grab' : undefined,
+        '&:active': isDraggable && !selectable ? { cursor: 'grabbing' } : undefined,
         border: selected ? '3px solid' : undefined,
         borderColor: selected ? 'primary.main' : undefined,
         '&:hover': {
@@ -141,7 +142,10 @@ export const ColoringPageCard = ({
         />
       )}
       <IconButton
-        onClick={handleDownloadClick}
+        onClick={(e) => {
+          e.stopPropagation()
+          handleDownloadClick(e)
+        }}
         disabled={downloadLoading}
         sx={{ ...iconButtonSx, left: selectable ? 44 : 8 }}
       >
@@ -192,7 +196,10 @@ export const ColoringPageCard = ({
         </>
       )}
       <IconButton
-        onClick={() => onToggleFavorite(page.id)}
+        onClick={(e) => {
+          e.stopPropagation()
+          onToggleFavorite(page.id)
+        }}
         disabled={isFavoritePending}
         sx={{ ...iconButtonSx, right: onRemoveFromFolder ? 52 : 8 }}
       >
