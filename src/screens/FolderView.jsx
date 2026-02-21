@@ -21,7 +21,7 @@ import {
   LinearProgress,
   Pagination,
 } from '@mui/material'
-import { ArrowBack, Download, Edit, Delete, Close } from '@mui/icons-material'
+import { ArrowBack, Download, Edit, Delete, Close, KeyboardArrowUp, KeyboardArrowDown } from '@mui/icons-material'
 import { MainLayout } from '../components/Layout/MainLayout'
 import { ColoringPageCard } from '../components/ColoringPageCard'
 import { useAuth } from '../hooks/useAuth'
@@ -60,6 +60,7 @@ export const FolderView = () => {
   const [downloadProgress, setDownloadProgress] = useState(null)
   const [orderedPages, setOrderedPages] = useState([])
   const [dragOverIndex, setDragOverIndex] = useState(null)
+  const [dragOverZone, setDragOverZone] = useState(null) // 'prev' | 'next' | null
   const [page, setPage] = useState(1)
 
   const pagesInFolder = folderId
@@ -378,6 +379,51 @@ export const FolderView = () => {
         </Card>
       ) : (
         <>
+          {folderPageCount > 1 && page > 1 && (
+            <Box
+              onDragOver={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                e.dataTransfer.dropEffect = 'move'
+                setDragOverIndex(null)
+                setDragOverZone('prev')
+              }}
+              onDragLeave={(e) => {
+                e.stopPropagation()
+                setDragOverZone(null)
+              }}
+              onDrop={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setDragOverZone(null)
+                const draggedId = e.dataTransfer.getData(DRAG_TYPE)
+                if (draggedId) {
+                  const toIndex = (page - 1) * FOLDER_PAGE_SIZE - 1
+                  handleReorder(draggedId, toIndex)
+                  setPage(page - 1)
+                }
+              }}
+              sx={{
+                py: 1.5,
+                px: 2,
+                mb: 2,
+                borderRadius: 2,
+                border: '2px dashed',
+                borderColor: dragOverZone === 'prev' ? 'primary.main' : 'divider',
+                bgcolor: dragOverZone === 'prev' ? 'action.hover' : 'action.selected',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 1,
+                transition: 'border-color 0.15s, background-color 0.15s',
+              }}
+            >
+              <KeyboardArrowUp />
+              <Typography variant="body2" color="text.secondary">
+                Move to previous page
+              </Typography>
+            </Box>
+          )}
           <Grid container spacing={3}>
             {paginatedPages.map((card, index) => {
               const globalIndex = (page - 1) * FOLDER_PAGE_SIZE + index
@@ -389,15 +435,18 @@ export const FolderView = () => {
                       e.stopPropagation()
                       e.dataTransfer.dropEffect = 'move'
                       setDragOverIndex(globalIndex)
+                      setDragOverZone(null)
                     }}
                     onDragLeave={(e) => {
                       e.stopPropagation()
                       setDragOverIndex(null)
+                      setDragOverZone(null)
                     }}
                     onDrop={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
                       setDragOverIndex(null)
+                      setDragOverZone(null)
                       const draggedId = e.dataTransfer.getData(DRAG_TYPE)
                       if (draggedId) handleReorder(draggedId, globalIndex)
                     }}
@@ -423,6 +472,52 @@ export const FolderView = () => {
               )
             })}
           </Grid>
+          {folderPageCount > 1 && page < folderPageCount && (
+            <Box
+              onDragOver={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                e.dataTransfer.dropEffect = 'move'
+                setDragOverIndex(null)
+                setDragOverZone('next')
+              }}
+              onDragLeave={(e) => {
+                e.stopPropagation()
+                setDragOverZone(null)
+              }}
+              onDrop={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setDragOverZone(null)
+                const draggedId = e.dataTransfer.getData(DRAG_TYPE)
+                if (draggedId) {
+                  const toIndex = page * FOLDER_PAGE_SIZE
+                  handleReorder(draggedId, toIndex)
+                  setPage(page + 1)
+                }
+              }}
+              sx={{
+                py: 1.5,
+                px: 2,
+                mt: 3,
+                mb: 1,
+                borderRadius: 2,
+                border: '2px dashed',
+                borderColor: dragOverZone === 'next' ? 'primary.main' : 'divider',
+                bgcolor: dragOverZone === 'next' ? 'action.hover' : 'action.selected',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 1,
+                transition: 'border-color 0.15s, background-color 0.15s',
+              }}
+            >
+              <Typography variant="body2" color="text.secondary">
+                Move to next page
+              </Typography>
+              <KeyboardArrowDown />
+            </Box>
+          )}
           {folderPageCount > 1 && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
               <Pagination
