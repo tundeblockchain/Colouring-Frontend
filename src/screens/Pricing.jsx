@@ -40,9 +40,9 @@ const useTrackPricingView = () => {
 const formatPrice = (amountInCents, currency = 'usd') => {
   const value = amountInCents / 100
   try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency: currency.toUpperCase() }).format(value)
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency.toUpperCase() }).format(value)
   } catch {
-    return `${currency.toUpperCase()} ${value.toFixed(2)}`
+    return `$${value.toFixed(2)}`
   }
 }
 
