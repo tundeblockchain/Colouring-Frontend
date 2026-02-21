@@ -27,7 +27,7 @@ import { ColoringPageCard } from '../components/ColoringPageCard'
 import { useAuth } from '../hooks/useAuth'
 import { useUser } from '../hooks/useUser'
 import { useFolders, useUpdateFolder, useDeleteFolder, useSetFolderPageOrder } from '../hooks/useFolders'
-import { useColoringPages, useToggleFavorite } from '../hooks/useColoringPages'
+import { useColoringPages, useToggleFavorite, useMoveToFolder } from '../hooks/useColoringPages'
 import { useToast } from '../contexts/ToastContext'
 import { downloadImage, downloadImagesAsPdf, downloadImagesAsZip } from '../utils/downloadImage'
 
@@ -50,6 +50,7 @@ export const FolderView = () => {
   const deleteFolderMutation = useDeleteFolder()
   const setFolderPageOrderMutation = useSetFolderPageOrder()
   const toggleFavoriteMutation = useToggleFavorite()
+  const moveToFolderMutation = useMoveToFolder()
 
   const folder = folders.find((f) => f.id === folderId)
   const [renameOpen, setRenameOpen] = useState(false)
@@ -101,12 +102,33 @@ export const FolderView = () => {
           folderId,
           pageIds: next.map((p) => p.id),
         })
-      } catch {
+      } catch (err) {
         showToast('Failed to save order', 'error')
         setOrderedPages(prevOrder)
+        throw err
       }
     },
     [orderedPages, user?.uid, folderId, setFolderPageOrderMutation, showToast]
+  )
+
+  const handleRemoveFromFolder = useCallback(
+    async (pageId) => {
+      if (!user?.uid) return
+      const prevOrder = orderedPages.slice()
+      setOrderedPages((prev) => prev.filter((p) => p.id !== pageId))
+      try {
+        await moveToFolderMutation.mutateAsync({
+          pageId,
+          userId: user.uid,
+          folderId: null,
+        })
+        showToast('Removed from folder')
+      } catch {
+        setOrderedPages(prevOrder)
+        showToast('Failed to remove from folder', 'error')
+      }
+    },
+    [orderedPages, user?.uid, moveToFolderMutation, showToast]
   )
 
   const folderPageCount = Math.max(1, Math.ceil(orderedPages.length / FOLDER_PAGE_SIZE))
@@ -392,15 +414,20 @@ export const FolderView = () => {
                 e.stopPropagation()
                 setDragOverZone(null)
               }}
-              onDrop={(e) => {
+              onDrop={async (e) => {
                 e.preventDefault()
                 e.stopPropagation()
                 setDragOverZone(null)
                 const draggedId = e.dataTransfer.getData(DRAG_TYPE)
                 if (draggedId) {
-                  const toIndex = (page - 1) * FOLDER_PAGE_SIZE - 1
-                  handleReorder(draggedId, toIndex)
-                  setPage(page - 1)
+                  try {
+                    const toIndex = (page - 1) * FOLDER_PAGE_SIZE - 1
+                    await handleReorder(draggedId, toIndex)
+                    showToast('Moved to previous page')
+                    setPage(page - 1)
+                  } catch {
+                    // handleReorder already shows error toast
+                  }
                 }
               }}
               sx={{
@@ -466,6 +493,7 @@ export const FolderView = () => {
                       canDownloadPdf={canDownloadPdf}
                       userId={user?.uid}
                       draggable
+                      onRemoveFromFolder={handleRemoveFromFolder}
                     />
                   </Box>
                 </Grid>
@@ -485,15 +513,20 @@ export const FolderView = () => {
                 e.stopPropagation()
                 setDragOverZone(null)
               }}
-              onDrop={(e) => {
+              onDrop={async (e) => {
                 e.preventDefault()
                 e.stopPropagation()
                 setDragOverZone(null)
                 const draggedId = e.dataTransfer.getData(DRAG_TYPE)
                 if (draggedId) {
-                  const toIndex = page * FOLDER_PAGE_SIZE
-                  handleReorder(draggedId, toIndex)
-                  setPage(page + 1)
+                  try {
+                    const toIndex = page * FOLDER_PAGE_SIZE
+                    await handleReorder(draggedId, toIndex)
+                    showToast('Moved to next page')
+                    setPage(page + 1)
+                  } catch {
+                    // handleReorder already shows error toast
+                  }
                 }
               }}
               sx={{

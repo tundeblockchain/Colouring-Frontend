@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Card, CardMedia, CardContent, IconButton, Typography, Menu, MenuItem, Checkbox, CircularProgress, useTheme } from '@mui/material'
-import { Favorite, Download } from '@mui/icons-material'
+import { Favorite, Download, MoreVert, DriveFileMoveOutlined } from '@mui/icons-material'
 import { downloadImage } from '../utils/downloadImage'
 import { useToast } from '../contexts/ToastContext'
 
@@ -47,12 +47,14 @@ export const ColoringPageCard = ({
   selected = false,
   onSelect,
   onDragStart,
+  onRemoveFromFolder,
   userId,
 }) => {
   const imageUrl = page.imageUrl || page.thumbnailUrl
   const theme = useTheme()
   const { showToast } = useToast()
   const [downloadAnchor, setDownloadAnchor] = useState(null)
+  const [moreAnchor, setMoreAnchor] = useState(null)
   const [downloadLoading, setDownloadLoading] = useState(false)
 
   const handleDownloadClick = (e) => {
@@ -161,10 +163,38 @@ export const ColoringPageCard = ({
           Download as PDF{!canDownloadPdf ? ' (Upgrade required)' : ''}
         </MenuItem>
       </Menu>
+      {onRemoveFromFolder && (
+        <>
+          <IconButton
+            onClick={(e) => { e.stopPropagation(); setMoreAnchor(e.currentTarget) }}
+            sx={{ ...iconButtonSx, right: 8 }}
+            aria-label="More actions"
+          >
+            <MoreVert />
+          </IconButton>
+          <Menu
+            anchorEl={moreAnchor}
+            open={Boolean(moreAnchor)}
+            onClose={() => setMoreAnchor(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          >
+            <MenuItem
+              onClick={() => {
+                setMoreAnchor(null)
+                onRemoveFromFolder(page.id)
+              }}
+            >
+              <DriveFileMoveOutlined sx={{ mr: 1, fontSize: 20 }} />
+              Remove from folder
+            </MenuItem>
+          </Menu>
+        </>
+      )}
       <IconButton
         onClick={() => onToggleFavorite(page.id)}
         disabled={isFavoritePending}
-        sx={{ ...iconButtonSx, right: 8 }}
+        sx={{ ...iconButtonSx, right: onRemoveFromFolder ? 52 : 8 }}
       >
         <Favorite
           sx={{
