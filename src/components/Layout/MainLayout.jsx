@@ -1,10 +1,14 @@
-import { Box } from '@mui/material'
+import { useState } from 'react'
+import { Box, Fab } from '@mui/material'
+import { ContactSupport } from '@mui/icons-material'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
+import { ChatbotHelper } from '../ChatbotHelper'
 import { useAuth } from '../../hooks/useAuth'
 
 export const MainLayout = ({ children }) => {
   const { user } = useAuth()
+  const [chatbotOpen, setChatbotOpen] = useState(false)
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: 'background.default' }}>
@@ -26,6 +30,23 @@ export const MainLayout = ({ children }) => {
           {children}
         </Box>
       </Box>
+
+      <Fab
+        color="primary"
+        aria-label="Get help"
+        onClick={() => setChatbotOpen(true)}
+        sx={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+          zIndex: 998,
+          '&:hover': { backgroundColor: 'primary.dark' },
+        }}
+      >
+        <ContactSupport />
+      </Fab>
+
+      <ChatbotHelper open={chatbotOpen} onClose={() => setChatbotOpen(false)} />
     </Box>
   )
 }
