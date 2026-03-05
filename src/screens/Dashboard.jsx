@@ -6,10 +6,13 @@ import {
   CardContent,
   Button,
   Grid,
+  Chip,
 } from '@mui/material'
 import { MainLayout } from '../components/Layout/MainLayout'
 import { FloatingActionButton } from '../components/FloatingActionButton'
 import { useOnboardingTour } from '../hooks/useOnboardingTour'
+import { useAuth } from '../hooks/useAuth'
+import { useUser } from '../hooks/useUser'
 
 const featureCards = [
   {
@@ -26,13 +29,15 @@ const featureCards = [
     image: '/word-art.png',
     path: '/create/word-art',
   },
-  // {
-  //   id: 3,
-  //   title: 'Front Cover',
-  //   description: 'Generate a front cover for your colouring book.',
-  //   image: '/text-prompts.png',
-  //   path: '/create/front-cover',
-  // },
+  {
+    id: 3,
+    title: 'Book',
+    description: 'Create a full coloring book with multiple unique pages.',
+    image: '/book.png',
+    path: '/create/book',
+    premium: true,
+    imageCover: true,
+  },
   {
     id: 4,
     title: 'Photos',
@@ -44,6 +49,11 @@ const featureCards = [
 
 export const Dashboard = () => {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const { data: userProfile } = useUser(user?.uid)
+  const planKey = (userProfile?.plan || '').toLowerCase()
+  const canUseBook = ['hobby', 'artist', 'business'].includes(planKey)
+  const showPremiumBanner = (card) => card.premium && !canUseBook
 
   useOnboardingTour({
     runOnMount: true,
@@ -73,72 +83,92 @@ export const Dashboard = () => {
         </Typography>
 
         <Grid container spacing={3} data-tour="tour-feature-cards">
-          {featureCards.map((card) => (
-            <Grid item xs={12} sm={6} md={3} key={card.id}>
-              <Card
-                sx={{
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: '0 8px 16px rgba(0,0,0,0.15)',
-                  },
-                }}
-              >
-                <Box
+          {featureCards.map((card) => {
+            const isLocked = showPremiumBanner(card)
+            return (
+              <Grid item xs={12} sm={6} md={3} key={card.id}>
+                <Card
                   sx={{
-                    width: '100%',
-                    height: 0,
-                    paddingBottom: '66.67%', // 2/3 = 3:2 aspect ratio
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
                     position: 'relative',
-                    overflow: 'hidden',
-                    backgroundColor: 'action.hover',
-                    flexShrink: 0,
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 8px 16px rgba(0,0,0,0.15)',
+                    },
                   }}
                 >
+                  {isLocked && (
+                    <Chip
+                      label="Premium"
+                      size="small"
+                      sx={{
+                        position: 'absolute',
+                        top: 12,
+                        right: 12,
+                        zIndex: 1,
+                        fontWeight: 600,
+                        backgroundColor: 'primary.main',
+                        color: 'primary.contrastText',
+                      }}
+                    />
+                  )}
                   <Box
-                    component="img"
-                    src={card.image}
-                    alt={card.title}
-                    loading="lazy"
                     sx={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      display: 'block',
                       width: '100%',
-                      height: '100%',
-                      objectFit: 'contain',
-                      objectPosition: 'center',
-                    }}
-                  />
-                </Box>
-                <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', pt: 1.5, pb: 2, '&:last-child': { pb: 2 } }}>
-                  <Typography variant="h6" component="h2" gutterBottom sx={{ fontWeight: 600 }}>
-                    {card.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1, marginBottom: 2 }}>
-                    {card.description}
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    fullWidth
-                    onClick={() => navigate(card.path)}
-                    sx={{
-                      backgroundColor: 'primary.main',
-                      '&:hover': {
-                        backgroundColor: 'primary.dark',
-                      },
+                      height: 0,
+                      paddingBottom: '66.67%', // 2/3 = 3:2 aspect ratio
+                      position: 'relative',
+                      overflow: 'hidden',
+                      backgroundColor: 'action.hover',
+                      flexShrink: 0,
                     }}
                   >
-                    Try it now!
-                  </Button>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
+                    <Box
+                      component="img"
+                      src={card.image}
+                      alt={card.title}
+                      loading="lazy"
+                      sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        display: 'block',
+                        width: '100%',
+                        height: '100%',
+                        objectFit: card.imageCover ? 'cover' : 'contain',
+                        objectPosition: 'center',
+                        ...(isLocked && { opacity: 0.85 }),
+                      }}
+                    />
+                  </Box>
+                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', pt: 1.5, pb: 2, '&:last-child': { pb: 2 } }}>
+                    <Typography variant="h6" component="h2" gutterBottom sx={{ fontWeight: 600 }}>
+                      {card.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1, marginBottom: 2 }}>
+                      {card.description}
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      fullWidth
+                      onClick={() => navigate(isLocked ? '/choose-plan' : card.path)}
+                      sx={{
+                        backgroundColor: 'primary.main',
+                        '&:hover': {
+                          backgroundColor: 'primary.dark',
+                        },
+                      }}
+                    >
+                      {isLocked ? 'Upgrade to unlock' : 'Try it now!'}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )
+          })}
         </Grid>
       </Box>
       {/* <FloatingActionButton /> */}

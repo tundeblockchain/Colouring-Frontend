@@ -162,6 +162,69 @@ export const generateColoringPage = async (params) => {
 }
 
 /**
+ * Generate a full coloring book in one request.
+ * Backend endpoint: POST /coloring-pages/generate-book
+ *
+ * The backend is responsible for:
+ * - Expanding the base prompt into multiple, varied prompts
+ * - Creating a folder (using the provided title as the folder name)
+ * - Generating one coloring page per prompt and assigning them to the folder
+ * - Charging credits based on total number of generated pages
+ *
+ * @param {object} params - { userId, title, prompt, quality, dimensions, numPages }
+ * @returns {{ success: boolean, data?: { coloringPages: ColoringPage[], folder?: object, creditsRemaining?: number }, error?: string }}
+ */
+export const generateColoringBook = async (params) => {
+  const { userId, title, prompt, quality, dimensions, numPages } = params
+
+  if (!userId) {
+    return { success: false, error: 'User is required' }
+  }
+  if (!title || !String(title).trim()) {
+    return { success: false, error: 'Book title is required' }
+  }
+  if (!prompt || !String(prompt).trim()) {
+    return { success: false, error: 'Prompt is required' }
+  }
+
+  const count = Math.min(25, Math.max(1, parseInt(numPages ?? params.numImages ?? 1, 10) || 1))
+  const qualityValue = quality || 'fast'
+  const size = dimensions || '2:3'
+
+  const body = {
+    title: String(title).trim(),
+    basePrompt: String(prompt).trim(),
+    numPages: count,
+    quality: qualityValue,
+    dimensions: size,
+  }
+
+  const result = await apiRequest('/coloring-pages/generate-book', {
+    method: 'POST',
+    userId,
+    body,
+  })
+
+  if (result.success) {
+    const rawPages = result.data?.coloringPages ?? result.data?.pages ?? []
+    const coloringPages = Array.isArray(rawPages)
+      ? rawPages.map((p) => new ColoringPage(p))
+      : []
+    return {
+      success: true,
+      data: {
+        coloringPages,
+        folder: result.data?.folder ?? result.data?.bookFolder ?? null,
+        creditsRemaining: result.data?.creditsRemaining,
+      },
+      creditsRemaining: result.data?.creditsRemaining,
+    }
+  }
+
+  return result
+}
+
+/**
  * Get a single coloring page by ID (for polling async generation).
  * @returns {{ success: boolean, data?: ColoringPage, error?: string }}
  */

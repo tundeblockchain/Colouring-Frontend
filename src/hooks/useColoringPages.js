@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getUserColoringPages,
   generateColoringPage,
+  generateColoringBook,
   toggleFavorite,
   deleteColoringPage,
   moveColoringPageToFolder,
@@ -28,6 +29,20 @@ export const useGenerateColoringPage = () => {
     mutationFn: (params) => generateColoringPage(params),
     onSuccess: (result, variables) => {
       queryClient.invalidateQueries(['coloringPages', variables.userId])
+      queryClient.invalidateQueries(['user', variables.userId])
+      return result
+    },
+  })
+}
+
+export const useGenerateColoringBook = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (params) => generateColoringBook(params),
+    onSuccess: (result, variables) => {
+      queryClient.invalidateQueries(['coloringPages', variables.userId])
+      queryClient.invalidateQueries(['folders', variables.userId])
       queryClient.invalidateQueries(['user', variables.userId])
       return result
     },
