@@ -313,6 +313,7 @@ export const CreateColoringPage = () => {
             justifyContent: 'center',
             minHeight: 0,
             gap: 2,
+            overflowY: 'auto',
           }}
         >
           <Box
@@ -629,7 +630,7 @@ export const CreateColoringPage = () => {
             )}
           </Box>
           {hasPreviews && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%', maxWidth: 560 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%', maxWidth: 560, flexShrink: 0 }}>
               {isBookTab && generatedPreviews.length > 1 && (
                 <Box sx={{ mb: 1 }}>
                   <Typography
@@ -650,13 +651,14 @@ export const CreateColoringPage = () => {
                   />
                 </Box>
               )}
-              <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
+              <Box sx={{ display: 'flex', gap: 1, width: '100%', flexShrink: 0, flexWrap: 'wrap' }}>
                 <Button
                   size="small"
                   variant="contained"
                   onClick={() => navigate('/gallery')}
                   sx={{
                     flex: 1,
+                    minWidth: 100,
                     backgroundColor: 'primary.main',
                     '&:hover': { backgroundColor: 'primary.dark' },
                   }}
@@ -669,6 +671,10 @@ export const CreateColoringPage = () => {
                     variant="contained"
                     color="secondary"
                     disabled={pdfDownloading}
+                    sx={{
+                      flex: 1,
+                      minWidth: 120,
+                    }}
                     onClick={async () => {
                       if (!generatedPreviews.length || pdfDownloading) return
                       setPdfDownloading(true)
@@ -699,9 +705,6 @@ export const CreateColoringPage = () => {
                         setPdfDownloading(false)
                       }
                     }}
-                    sx={{
-                      flex: 1,
-                    }}
                     startIcon={pdfDownloading ? <CircularProgress size={18} color="inherit" /> : null}
                   >
                     {pdfDownloading ? 'Preparing…' : 'Download Book'}
@@ -717,6 +720,7 @@ export const CreateColoringPage = () => {
                   }}
                   sx={{
                     flex: 1,
+                    minWidth: 100,
                     borderColor: 'rgba(255,255,255,0.5)',
                     color: 'rgba(255,255,255,0.9)',
                   }}
