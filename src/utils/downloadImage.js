@@ -5,6 +5,114 @@ import { trackDownload } from './analytics'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'
 
 /**
+ * Print one or more coloring images (same fetch rules as downloadImage).
+ * @param {Array<{ url: string, title?: string, id?: string }>} items
+ * @param {string | null} [userId]
+ */
+export const printColoringPages = async (items, userId = null) => {
+  if (!items?.length) return
+  const blobs = []
+  for (const item of items) {
+    const { url, id } = item
+    const fetchUrl = id && userId
+      ? `${API_BASE_URL}/coloring-pages/${id}/image`
+      : url
+    const headers = {}
+    if (id && userId) {
+      headers['X-User-Id'] = userId
+      headers['Accept'] = 'image/png, image/jpeg'
+    }
+    const response = await fetch(fetchUrl, { headers: Object.keys(headers).length ? headers : undefined })
+    if (!response.ok) {
+      throw new Error('Failed to load image for printing')
+    }
+    blobs.push(await response.blob())
+  }
+  const objectUrls = blobs.map((b) => URL.createObjectURL(b))
+  const iframe = document.createElement('iframe')
+  iframe.setAttribute('aria-hidden', 'true')
+  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none'
+  document.body.appendChild(iframe)
+  const doc = iframe.contentDocument
+  if (!doc) {
+    objectUrls.forEach((u) => URL.revokeObjectURL(u))
+    document.body.removeChild(iframe)
+    throw new Error('Print is not available in this browser')
+  }
+  doc.open()
+  doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Print</title><style>
+    @page { margin: 8mm; size: auto; }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: auto;
+      min-height: 0;
+    }
+    /* Avoid flex + min-height:100vh in print — it often yields a blank first page and extra trailing pages. */
+    .print-page {
+      margin: 0;
+      padding: 0;
+      text-align: center;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .print-page:not(:last-child) {
+      page-break-after: always;
+      break-after: page;
+    }
+    .print-page img {
+      display: block;
+      margin: 0 auto;
+      max-width: 100%;
+      max-height: 270mm;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+    }
+  </style></head><body>`)
+  objectUrls.forEach((u) => {
+    doc.write(`<div class="print-page"><img src="${u}" alt="" /></div>`)
+  })
+  doc.write('</body></html>')
+  doc.close()
+  const images = [...doc.querySelectorAll('img')]
+  if (images.length === 0) {
+    objectUrls.forEach((u) => URL.revokeObjectURL(u))
+    document.body.removeChild(iframe)
+    throw new Error('No images to print')
+  }
+  let remaining = images.length
+  const finish = () => {
+    remaining -= 1
+    if (remaining > 0) return
+    const runPrint = () => {
+      const w = iframe.contentWindow
+      if (w) {
+        w.focus()
+        w.print()
+      }
+    }
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => setTimeout(runPrint, 0))
+    } else {
+      setTimeout(runPrint, 0)
+    }
+    setTimeout(() => {
+      objectUrls.forEach((u) => URL.revokeObjectURL(u))
+      if (iframe.parentNode) iframe.parentNode.removeChild(iframe)
+    }, 500)
+  }
+  images.forEach((img) => {
+    if (img.complete) finish()
+    else {
+      img.onload = finish
+      img.onerror = finish
+    }
+  })
+}
+
+/**
  * Download an image from a URL. Saves as PNG or PDF.
  * Uses /image endpoint when pageId and userId are provided.
  * @param {string} imageUrl - URL of the image

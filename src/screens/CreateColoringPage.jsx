@@ -24,6 +24,7 @@ import {
 import {
   ExpandMore,
   AutoAwesome,
+  Print,
 } from '@mui/icons-material'
 import { MainLayout } from '../components/Layout/MainLayout'
 import { useAuth } from '../hooks/useAuth'
@@ -34,7 +35,7 @@ import { pollColoringPageUntilComplete } from '../api/coloringPages'
 import { improvePrompt } from '../api/prompts'
 import { ColoringPage } from '../models/coloringPage'
 import { trackCreationType } from '../utils/analytics'
-import { downloadImagesAsPdf } from '../utils/downloadImage'
+import { downloadImagesAsPdf, printColoringPages } from '../utils/downloadImage'
 
 const tabTypes = {
   text: 'text',
@@ -96,6 +97,7 @@ export const CreateColoringPage = () => {
   const [bookTitle, setBookTitle] = useState('')
   const [bookCurrentPageIndex, setBookCurrentPageIndex] = useState(0)
   const [pdfDownloading, setPdfDownloading] = useState(false)
+  const [printLoading, setPrintLoading] = useState(false)
 
   const handleTabChange = (event, newValue) => {
     if (photoPreviewUrl) {
@@ -664,6 +666,59 @@ export const CreateColoringPage = () => {
                   }}
                 >
                   View in gallery
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="inherit"
+                  disabled={printLoading}
+                  startIcon={printLoading ? <CircularProgress size={18} color="inherit" /> : <Print />}
+                  onClick={async () => {
+                    if (!generatedPreviews.length || printLoading) return
+                    const ready = (p) => {
+                      const url = p?.imageUrl || p?.thumbnailUrl
+                      if (!url || p.status === 'failed') return false
+                      if (p.status === 'processing') return false
+                      return true
+                    }
+                    let items
+                    if (isBookTab) {
+                      const p = generatedPreviews[bookCurrentPageIndex] || generatedPreviews[0]
+                      if (!ready(p)) {
+                        alert('This page is not ready to print yet.')
+                        return
+                      }
+                      items = [{ url: p.imageUrl || p.thumbnailUrl, title: p.title, id: p.id }]
+                    } else {
+                      items = generatedPreviews.filter(ready).map((p) => ({
+                        url: p.imageUrl || p.thumbnailUrl,
+                        title: p.title,
+                        id: p.id,
+                      }))
+                    }
+                    if (!items.length) {
+                      alert('No images available to print yet.')
+                      return
+                    }
+                    setPrintLoading(true)
+                    try {
+                      await printColoringPages(items, user?.uid || null)
+                    } catch (err) {
+                      alert(err.message || 'Failed to print')
+                    } finally {
+                      setPrintLoading(false)
+                    }
+                  }}
+                  sx={{
+                    flex: 1,
+                    minWidth: 100,
+                    backgroundColor: 'rgba(255,255,255,0.12)',
+                    color: 'rgba(255,255,255,0.95)',
+                    '&:hover': { backgroundColor: 'rgba(255,255,255,0.2)' },
+                    '&.Mui-disabled': { color: 'rgba(255,255,255,0.4)' },
+                  }}
+                >
+                  {printLoading ? 'Preparing…' : 'Print'}
                 </Button>
                 {isBookTab && (
                   <Button

@@ -101,6 +101,7 @@ export const Favorites = () => {
                 onToggleFavorite={handleToggleFavorite}
                 isFavoritePending={toggleFavoriteMutation.isPending}
                 canDownloadPdf={canDownloadPdf}
+                userId={user?.uid}
               />
             </Grid>
           ))}

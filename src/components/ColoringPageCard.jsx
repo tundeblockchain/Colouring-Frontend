@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Card, CardMedia, CardContent, IconButton, Typography, Menu, MenuItem, Checkbox, CircularProgress, useTheme } from '@mui/material'
-import { Favorite, Download, MoreVert, DriveFileMoveOutlined } from '@mui/icons-material'
-import { downloadImage } from '../utils/downloadImage'
+import { Favorite, Download, MoreVert, DriveFileMoveOutlined, Print } from '@mui/icons-material'
+import { downloadImage, printColoringPages } from '../utils/downloadImage'
 import { useToast } from '../contexts/ToastContext'
 
 const iconButtonSx = {
@@ -56,6 +56,7 @@ export const ColoringPageCard = ({
   const [downloadAnchor, setDownloadAnchor] = useState(null)
   const [moreAnchor, setMoreAnchor] = useState(null)
   const [downloadLoading, setDownloadLoading] = useState(false)
+  const [printLoading, setPrintLoading] = useState(false)
 
   const handleDownloadClick = (e) => {
     setDownloadAnchor(e.currentTarget)
@@ -76,6 +77,21 @@ export const ColoringPageCard = ({
       showToast(error.message || 'Failed to download image', 'error')
     } finally {
       setDownloadLoading(false)
+    }
+  }
+
+  const handlePrint = async (e) => {
+    e.stopPropagation()
+    setPrintLoading(true)
+    try {
+      await printColoringPages(
+        [{ url: imageUrl, title: page.title, id: page.id }],
+        userId,
+      )
+    } catch (error) {
+      showToast(error.message || 'Failed to print', 'error')
+    } finally {
+      setPrintLoading(false)
     }
   }
 
@@ -148,8 +164,17 @@ export const ColoringPageCard = ({
         }}
         disabled={downloadLoading}
         sx={{ ...iconButtonSx, left: selectable ? 44 : 8 }}
+        aria-label="Download"
       >
         {downloadLoading ? <CircularProgress size={20} color="inherit" /> : <Download />}
+      </IconButton>
+      <IconButton
+        onClick={handlePrint}
+        disabled={printLoading}
+        sx={{ ...iconButtonSx, left: selectable ? 92 : 56 }}
+        aria-label="Print"
+      >
+        {printLoading ? <CircularProgress size={20} color="inherit" /> : <Print />}
       </IconButton>
       <Menu
         anchorEl={downloadAnchor}
