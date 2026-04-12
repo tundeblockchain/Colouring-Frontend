@@ -20,6 +20,7 @@ import {
   ImageOutlined,
   FavoriteBorder,
   FolderOutlined,
+  LocalShippingOutlined,
   SettingsOutlined,
   LogoutOutlined,
   DarkMode,
@@ -34,6 +35,7 @@ const menuItems = [
   { icon: ImageOutlined, path: '/gallery', label: 'Gallery', tourId: 'tour-gallery' },
   { icon: FavoriteBorder, path: '/favorites', label: 'Favorites', tourId: 'tour-favorites' },
   { icon: FolderOutlined, path: '/folders', label: 'Folders', tourId: 'tour-folders' },
+  { icon: LocalShippingOutlined, path: '/print-orders', label: 'Print orders', tourId: null },
   { icon: SettingsOutlined, path: '/settings', label: 'Settings', tourId: 'tour-settings' },
 ]
 
@@ -77,13 +79,16 @@ export const Sidebar = () => {
       <List sx={{ width: '100%', flex: 1 }}>
         {menuItems.map((item) => {
           const Icon = item.icon
-          const isActive = location.pathname === item.path
+          const isActive =
+            item.path === '/print-orders'
+              ? location.pathname.startsWith('/print-orders')
+              : location.pathname === item.path
 
           return (
             <ListItem key={item.path} disablePadding>
               <Tooltip title={item.label} placement="right">
                 <ListItemButton
-                  data-tour={item.tourId}
+                  data-tour={item.tourId || undefined}
                   onClick={() => navigate(item.path)}
                   sx={{
                     justifyContent: 'center',

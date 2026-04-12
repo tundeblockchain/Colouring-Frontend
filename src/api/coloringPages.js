@@ -187,7 +187,7 @@ export const generateColoringBook = async (params) => {
     return { success: false, error: 'Prompt is required' }
   }
 
-  const count = Math.min(25, Math.max(1, parseInt(numPages ?? params.numImages ?? 1, 10) || 1))
+  const count = Math.min(50, Math.max(1, parseInt(numPages ?? params.numImages ?? 1, 10) || 1))
   const qualityValue = quality || 'fast'
   const size = dimensions || '2:3'
 

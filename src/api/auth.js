@@ -100,6 +100,21 @@ export const subscribeToAuth = (callback) => {
 }
 
 /**
+ * Firebase ID token for Authorization: Bearer (print orders and other secured APIs).
+ * @param {boolean} [forceRefresh]
+ * @returns {Promise<string | null>}
+ */
+export const getCurrentUserIdToken = async (forceRefresh = false) => {
+  const currentUser = auth.currentUser
+  if (!currentUser) return null
+  try {
+    return await currentUser.getIdToken(forceRefresh)
+  } catch {
+    return null
+  }
+}
+
+/**
  * Update the current user's password (Firebase Auth).
  * Requires the user to have signed in recently; otherwise use re-authentication.
  */

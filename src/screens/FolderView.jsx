@@ -20,16 +20,28 @@ import {
   CircularProgress,
   LinearProgress,
   Pagination,
+  Tooltip,
 } from '@mui/material'
-import { ArrowBack, Download, Edit, Delete, Close, KeyboardArrowUp, KeyboardArrowDown } from '@mui/icons-material'
+import {
+  ArrowBack,
+  Download,
+  Edit,
+  Delete,
+  Close,
+  KeyboardArrowUp,
+  KeyboardArrowDown,
+  LocalShipping,
+} from '@mui/icons-material'
 import { MainLayout } from '../components/Layout/MainLayout'
 import { ColoringPageCard } from '../components/ColoringPageCard'
 import { useAuth } from '../hooks/useAuth'
 import { useUser } from '../hooks/useUser'
 import { useFolders, useUpdateFolder, useDeleteFolder, useSetFolderPageOrder } from '../hooks/useFolders'
-import { useColoringPages, useToggleFavorite, useMoveToFolder } from '../hooks/useColoringPages'
+import { useToggleFavorite, useMoveToFolder } from '../hooks/useColoringPages'
+import { useFolderPageList } from '../hooks/useFolderPageList'
 import { useToast } from '../contexts/ToastContext'
 import { downloadImage, downloadImagesAsPdf, downloadImagesAsZip } from '../utils/downloadImage'
+import { MIN_PAGES_FOR_PHYSICAL_PRINT, selectPagesReadyForPrint } from '../constants/printOrder'
 
 const DRAG_TYPE = 'application/x-coloring-page-id'
 const FOLDER_PAGE_SIZE = 50
@@ -43,9 +55,7 @@ export const FolderView = () => {
   const canDownloadPdf = ['hobby', 'artist', 'business'].includes((userProfile?.plan || '').toLowerCase())
 
   const { data: folders = [], isLoading: foldersLoading } = useFolders(user?.uid)
-  const { data: allPages = [], isLoading: pagesLoading } = useColoringPages(user?.uid, {
-    folderId: folderId || undefined,
-  })
+  const { pagesInFolder, isLoading: pagesLoading } = useFolderPageList(user?.uid, folderId)
   const updateFolderMutation = useUpdateFolder()
   const deleteFolderMutation = useDeleteFolder()
   const setFolderPageOrderMutation = useSetFolderPageOrder()
@@ -65,26 +75,21 @@ export const FolderView = () => {
   const [isMovingAcrossPages, setIsMovingAcrossPages] = useState(false)
   const [page, setPage] = useState(1)
 
-  const pagesInFolder = folderId
-    ? allPages.filter((p) => p.folderId === folderId)
-    : allPages
+  const isEmpty = pagesInFolder.length === 0
 
   useEffect(() => {
-    const inFolder = folderId
-      ? allPages.filter((p) => p.folderId === folderId)
-      : allPages
-    if (inFolder.length === 0) {
+    if (pagesInFolder.length === 0) {
       setOrderedPages([])
       return
     }
     setOrderedPages((prev) => {
-      const byId = Object.fromEntries(inFolder.map((p) => [p.id, p]))
+      const byId = Object.fromEntries(pagesInFolder.map((p) => [p.id, p]))
       const prevIds = prev.map((p) => p.id).filter((id) => byId[id])
-      const newIds = inFolder.map((p) => p.id).filter((id) => !prevIds.includes(id))
+      const newIds = pagesInFolder.map((p) => p.id).filter((id) => !prevIds.includes(id))
       const orderedIds = [...prevIds, ...newIds]
       return orderedIds.map((id) => byId[id]).filter(Boolean)
     })
-  }, [folderId, allPages])
+  }, [folderId, pagesInFolder])
 
   const handleReorder = useCallback(
     async (draggedId, toIndex) => {
@@ -252,6 +257,16 @@ export const FolderView = () => {
     }
   }
 
+  const printReadyPages = useMemo(() => selectPagesReadyForPrint(orderedPages), [orderedPages])
+  const printReadyCount = printReadyPages.length
+  const canOrderPhysicalPrint =
+    !isEmpty && canDownloadPdf && printReadyCount >= MIN_PAGES_FOR_PHYSICAL_PRINT
+  const orderPhysicalPrintTooltip = useMemo(() => {
+    if (isEmpty || !canDownloadPdf) return ''
+    if (printReadyCount >= MIN_PAGES_FOR_PHYSICAL_PRINT) return ''
+    return `Physical printing needs at least ${MIN_PAGES_FOR_PHYSICAL_PRINT} finished pages in this folder (${printReadyCount} ready).`
+  }, [isEmpty, canDownloadPdf, printReadyCount])
+
   const isLoading = foldersLoading
   const notFound = !isLoading && !folder
 
@@ -267,8 +282,6 @@ export const FolderView = () => {
       </MainLayout>
     )
   }
-
-  const isEmpty = pagesInFolder.length === 0
 
   return (
     <MainLayout>
@@ -346,6 +359,34 @@ export const FolderView = () => {
                 Download all as PDF{!canDownloadPdf ? ' (Upgrade required)' : ''}
               </MenuItem>
             </Menu>
+            <Tooltip
+              title={orderPhysicalPrintTooltip}
+              placement="top"
+              arrow
+              disableHoverListener={!orderPhysicalPrintTooltip}
+              disableFocusListener={!orderPhysicalPrintTooltip}
+              disableTouchListener={!orderPhysicalPrintTooltip}
+            >
+              <span>
+                <Button
+                  variant="outlined"
+                  startIcon={<LocalShipping />}
+                  disabled={!canOrderPhysicalPrint}
+                  onClick={() =>
+                    navigate(`/print-checkout/${encodeURIComponent(folderId)}`, {
+                      state: {
+                        returnPath: `/folders/${encodeURIComponent(folderId)}`,
+                        orderedPageIds: orderedPages.map((p) => p.id).filter(Boolean),
+                        lineItemTitle: folder?.name ? `${folder.name} (print)` : 'Folder (print)',
+                      },
+                    })
+                  }
+                  sx={{ borderColor: 'primary.main', color: 'primary.main' }}
+                >
+                  Order physical copy
+                </Button>
+              </span>
+            </Tooltip>
             <Button
               variant="outlined"
               startIcon={<Edit />}
@@ -650,6 +691,7 @@ export const FolderView = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
     </MainLayout>
   )
 }

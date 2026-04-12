@@ -15,6 +15,9 @@ import { CreateColoringPage } from './screens/CreateColoringPage'
 import { Profile } from './screens/Profile'
 import { Folders } from './screens/Folders'
 import { FolderView } from './screens/FolderView'
+import { PrintOrders } from './screens/PrintOrders'
+import { PrintOrderDetail } from './screens/PrintOrderDetail'
+import { PrintCheckoutFlow } from './screens/PrintCheckoutFlow'
 import { Pricing } from './screens/Pricing'
 import { ChoosePlan } from './screens/ChoosePlan'
 import { AddOneTimeCredits } from './screens/AddOneTimeCredits'
@@ -148,6 +151,30 @@ function App() {
         element={
           <ProtectedRoute>
             <FolderView />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/print-orders"
+        element={
+          <ProtectedRoute>
+            <PrintOrders />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/print-orders/:orderId"
+        element={
+          <ProtectedRoute>
+            <PrintOrderDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/print-checkout/:bookId"
+        element={
+          <ProtectedRoute>
+            <PrintCheckoutFlow />
           </ProtectedRoute>
         }
       />

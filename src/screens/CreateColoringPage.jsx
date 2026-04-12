@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Box,
@@ -20,11 +20,13 @@ import {
   Alert,
   CircularProgress,
   LinearProgress,
+  Tooltip,
 } from '@mui/material'
 import {
   ExpandMore,
   AutoAwesome,
   Print,
+  LocalShipping,
 } from '@mui/icons-material'
 import { MainLayout } from '../components/Layout/MainLayout'
 import { useAuth } from '../hooks/useAuth'
@@ -36,6 +38,9 @@ import { improvePrompt } from '../api/prompts'
 import { ColoringPage } from '../models/coloringPage'
 import { trackCreationType } from '../utils/analytics'
 import { downloadImagesAsPdf, printColoringPages } from '../utils/downloadImage'
+import { MIN_PAGES_FOR_PHYSICAL_PRINT, selectPagesReadyForPrint } from '../constants/printOrder'
+
+const BOOK_GENERATION_MAX_PAGES = 50
 
 const tabTypes = {
   text: 'text',
@@ -70,6 +75,7 @@ export const CreateColoringPage = () => {
   const canUsePhoto = ['hobby', 'artist', 'business'].includes(planKey)
   const canUseFrontCover = ['hobby', 'artist', 'business'].includes(planKey)
   const canUseBook = ['hobby', 'artist', 'business'].includes(planKey)
+  const canDownloadPdf = ['hobby', 'artist', 'business'].includes(planKey)
 
   const initialTab = tabTypes[type] || 'text'
   const effectiveInitialTab = initialTab === 'drawing' ? 'text' : initialTab
@@ -98,6 +104,7 @@ export const CreateColoringPage = () => {
   const [bookCurrentPageIndex, setBookCurrentPageIndex] = useState(0)
   const [pdfDownloading, setPdfDownloading] = useState(false)
   const [printLoading, setPrintLoading] = useState(false)
+  const [bookFolderId, setBookFolderId] = useState(null)
 
   const handleTabChange = (event, newValue) => {
     if (photoPreviewUrl) {
@@ -165,7 +172,7 @@ export const CreateColoringPage = () => {
       return
     }
 
-    const maxImages = activeTab === 'book' ? 25 : 6
+    const maxImages = activeTab === 'book' ? BOOK_GENERATION_MAX_PAGES : 6
     const count = Math.min(maxImages, Math.max(1, numImages))
     const creditsPerImage = quality === 'fast' ? 1 : 2
     const requiredCredits = count * creditsPerImage
@@ -232,6 +239,14 @@ export const CreateColoringPage = () => {
           setGeneratedPreviews(previewPages)
           setBookCurrentPageIndex(0)
           setImageAspectRatio(null)
+          if (activeTab === 'book') {
+            const fid =
+              result.data?.folder?.id ??
+              result.data?.bookFolder?.id ??
+              previewPages.find((p) => p.folderId)?.folderId ??
+              null
+            setBookFolderId(fid || null)
+          }
           if (activeTab === 'photo' && photoPreviewUrl) {
             URL.revokeObjectURL(photoPreviewUrl)
             setPhotoPreviewUrl(null)
@@ -297,6 +312,26 @@ export const CreateColoringPage = () => {
     ? generatedPreviews.filter((p) => p.status === 'completed').length
     : 0
   const bookStillLoading = isBookTab && bookTotalPages > 0 && bookPagesComplete < bookTotalPages
+  const effectiveBookFolderId =
+    bookFolderId || generatedPreviews.find((p) => p.folderId)?.folderId || null
+
+  const bookReadyPagesCount = useMemo(
+    () => (isBookTab ? selectPagesReadyForPrint(generatedPreviews).length : 0),
+    [isBookTab, generatedPreviews],
+  )
+  const canOrderPhysicalPrint =
+    isBookTab &&
+    canDownloadPdf &&
+    !!effectiveBookFolderId &&
+    hasPreviews &&
+    bookReadyPagesCount >= MIN_PAGES_FOR_PHYSICAL_PRINT
+  const orderPhysicalPrintTooltip = useMemo(() => {
+    if (!isBookTab || !canDownloadPdf) return ''
+    if (!hasPreviews) return ''
+    if (!effectiveBookFolderId) return ''
+    if (bookReadyPagesCount >= MIN_PAGES_FOR_PHYSICAL_PRINT) return ''
+    return `Physical printing needs at least ${MIN_PAGES_FOR_PHYSICAL_PRINT} finished pages in this book (you have ${bookReadyPagesCount} ready). Generate more pages or wait for them to finish.`
+  }, [isBookTab, canDownloadPdf, hasPreviews, effectiveBookFolderId, bookReadyPagesCount])
   const bookProgressPercent =
     bookTotalPages > 0 ? Math.round((bookPagesComplete / bookTotalPages) * 100) : 0
 
@@ -765,6 +800,48 @@ export const CreateColoringPage = () => {
                     {pdfDownloading ? 'Preparing…' : 'Download Book'}
                   </Button>
                 )}
+                {isBookTab && (
+                  <Tooltip
+                    title={orderPhysicalPrintTooltip}
+                    placement="top"
+                    arrow
+                    disableHoverListener={!orderPhysicalPrintTooltip}
+                    disableFocusListener={!orderPhysicalPrintTooltip}
+                    disableTouchListener={!orderPhysicalPrintTooltip}
+                  >
+                    <span
+                      style={{
+                        flex: 1,
+                        minWidth: 140,
+                        display: 'inline-flex',
+                        justifyContent: 'stretch',
+                      }}
+                    >
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="primary"
+                        fullWidth
+                        disabled={!canOrderPhysicalPrint}
+                        startIcon={<LocalShipping />}
+                        onClick={() =>
+                          navigate(`/print-checkout/${encodeURIComponent(effectiveBookFolderId)}`, {
+                            state: {
+                              returnPath: '/create/book',
+                              orderedPageIds: generatedPreviews.map((p) => p.id).filter(Boolean),
+                              lineItemTitle: bookTitle?.trim()
+                                ? `${bookTitle.trim()} (print)`
+                                : 'Coloring book (print)',
+                            },
+                          })
+                        }
+                        sx={{ minWidth: 140 }}
+                      >
+                        Order physical copy
+                      </Button>
+                    </span>
+                  </Tooltip>
+                )}
                 <Button
                   size="small"
                   variant="outlined"
@@ -772,6 +849,7 @@ export const CreateColoringPage = () => {
                     setGeneratedPreviews([])
                     setImageAspectRatio(null)
                     setBookCurrentPageIndex(0)
+                    setBookFolderId(null)
                   }}
                   sx={{
                     flex: 1,
@@ -1105,16 +1183,25 @@ export const CreateColoringPage = () => {
                 <Typography variant="body2" sx={{ marginBottom: 1, fontWeight: 500 }}>
                   {isBookTab ? 'Number of pages' : 'Number of Images'}
                 </Typography>
+                {isBookTab && (
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                    Generate up to {BOOK_GENERATION_MAX_PAGES} pages. Physical printing needs at least{' '}
+                    {MIN_PAGES_FOR_PHYSICAL_PRINT} finished pages.
+                  </Typography>
+                )}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, marginBottom: 2 }}>
                   <TextField
                     type="number"
                     value={numImages}
                     onChange={(e) => {
                       const raw = parseInt(e.target.value, 10) || 1
-                      const max = isBookTab ? 25 : canGenerateMultiple ? 6 : 1
+                      const max = isBookTab ? BOOK_GENERATION_MAX_PAGES : canGenerateMultiple ? 6 : 1
                       setNumImages(Math.min(max, Math.max(1, raw)))
                     }}
-                    inputProps={{ min: 1, max: isBookTab ? 25 : canGenerateMultiple ? 6 : 1 }}
+                    inputProps={{
+                      min: 1,
+                      max: isBookTab ? BOOK_GENERATION_MAX_PAGES : canGenerateMultiple ? 6 : 1,
+                    }}
                     sx={{ width: 80 }}
                     size="small"
                     disabled={(!isBookTab && !canGenerateMultiple) || (isBookTab && !canUseBook)}
@@ -1123,11 +1210,11 @@ export const CreateColoringPage = () => {
                     value={numImages}
                     onChange={(e, value) => {
                       const v = Array.isArray(value) ? value[0] : value
-                      const max = isBookTab ? 25 : canGenerateMultiple ? 6 : 1
+                      const max = isBookTab ? BOOK_GENERATION_MAX_PAGES : canGenerateMultiple ? 6 : 1
                       setNumImages(Math.min(max, Math.max(1, v)))
                     }}
                     min={1}
-                    max={isBookTab ? 25 : canGenerateMultiple ? 6 : 1}
+                    max={isBookTab ? BOOK_GENERATION_MAX_PAGES : canGenerateMultiple ? 6 : 1}
                     step={1}
                     sx={{ flex: 1 }}
                     disabled={(!isBookTab && !canGenerateMultiple) || (isBookTab && !canUseBook)}
