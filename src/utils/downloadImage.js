@@ -205,6 +205,69 @@ function loadImage(dataUrl) {
 }
 
 /**
+ * Same fetch + jsPDF layout as "Download as PDF" (downloadImagesAsPdf): one /image request at a time,
+ * then addImage(..., 'PNG', ...). Returns a PDF Blob (does not trigger a download).
+ * @param {Array<{ url: string, title?: string, id?: string }>} items
+ * @param {string | null} [userId]
+ * @param {{ onProgress?: (percent: number) => void }} [options]
+ * @returns {Promise<Blob>}
+ */
+export async function buildImagesPdfBlob(items, userId = null, options = {}) {
+  if (!items?.length) {
+    throw new Error('No images to include in the PDF')
+  }
+  const { onProgress } = options
+  const total = items.length
+  let pdf = null
+  for (let i = 0; i < items.length; i++) {
+    const { url, id } = items[i]
+    const fetchUrl = id && userId ? `${API_BASE_URL}/coloring-pages/${id}/image` : url
+    const headers = {}
+    if (id && userId) {
+      headers['X-User-Id'] = userId
+      headers['Accept'] = 'image/png, image/jpeg'
+    }
+    const response = await fetch(fetchUrl, { headers: Object.keys(headers).length ? headers : undefined })
+    const blob = await response.blob()
+    const dataUrl = await blobToDataUrl(blob)
+    const img = await loadImage(dataUrl)
+    if (!pdf) {
+      pdf = new jsPDF({
+        orientation: img.width >= img.height ? 'landscape' : 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      })
+    } else {
+      pdf.addPage()
+    }
+    const pageW = pdf.internal.pageSize.getWidth()
+    const pageH = pdf.internal.pageSize.getHeight()
+    const imgAspect = img.width / img.height
+    const pageAspect = pageW / pageH
+    let w
+    let h
+    if (imgAspect > pageAspect) {
+      w = pageW
+      h = pageW / imgAspect
+    } else {
+      h = pageH
+      w = pageH * imgAspect
+    }
+    const x = (pageW - w) / 2
+    const y = (pageH - h) / 2
+    pdf.addImage(dataUrl, 'PNG', x, y, w, h)
+    const percent = Math.round(((i + 1) / total) * 100)
+    onProgress?.(percent)
+  }
+  if (pdf) {
+    onProgress?.(100)
+    const out = pdf.output('blob')
+    return out instanceof Blob ? out : new Blob([out], { type: 'application/pdf' })
+  }
+  throw new Error('No images to include in the PDF')
+}
+
+/**
  * Download multiple images as a single PDF (one image per page).
  * @param {Array<{ url: string, title: string, id?: string }>} items - Items with imageUrl, title, and optional id
  * @param {string} filename - Base filename for the PDF
@@ -213,57 +276,16 @@ function loadImage(dataUrl) {
  */
 export const downloadImagesAsPdf = async (items, filename = 'coloring-pages', userId = null, options = {}) => {
   if (!items?.length) return
-  const { onProgress } = options
   const baseName = (filename || 'coloring-pages').replace(/[<>:"/\\|?*]/g, '_')
-  const total = items.length
   try {
-    let pdf = null
-    for (let i = 0; i < items.length; i++) {
-      const { url, title, id } = items[i]
-      const fetchUrl = id && userId
-        ? `${API_BASE_URL}/coloring-pages/${id}/image`
-        : url
-      const headers = {}
-      if (id && userId) {
-        headers['X-User-Id'] = userId
-        headers['Accept'] = 'image/png, image/jpeg'
-      }
-      const response = await fetch(fetchUrl, { headers: Object.keys(headers).length ? headers : undefined })
-      const blob = await response.blob()
-      const dataUrl = await blobToDataUrl(blob)
-      const img = await loadImage(dataUrl)
-      if (!pdf) {
-        pdf = new jsPDF({
-          orientation: img.width >= img.height ? 'landscape' : 'portrait',
-          unit: 'mm',
-          format: 'a4',
-        })
-      } else {
-        pdf.addPage()
-      }
-      const pageW = pdf.internal.pageSize.getWidth()
-      const pageH = pdf.internal.pageSize.getHeight()
-      const imgAspect = img.width / img.height
-      const pageAspect = pageW / pageH
-      let w, h
-      if (imgAspect > pageAspect) {
-        w = pageW
-        h = pageW / imgAspect
-      } else {
-        h = pageH
-        w = pageH * imgAspect
-      }
-      const x = (pageW - w) / 2
-      const y = (pageH - h) / 2
-      pdf.addImage(dataUrl, 'PNG', x, y, w, h)
-      const percent = Math.round(((i + 1) / total) * 100)
-      onProgress?.(percent)
-    }
-    if (pdf) {
-      onProgress?.(100)
-      pdf.save(`${baseName}.pdf`)
-      trackDownload('pdf', items.length)
-    }
+    const blob = await buildImagesPdfBlob(items, userId, options)
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${baseName}.pdf`
+    link.click()
+    trackDownload('pdf', items.length)
+    setTimeout(() => URL.revokeObjectURL(url), 200)
   } catch (err) {
     throw new Error(err.message || 'Failed to download PDF')
   }

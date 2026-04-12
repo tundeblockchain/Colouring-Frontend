@@ -20,7 +20,7 @@ import {
   CircularProgress,
   LinearProgress,
   Pagination,
-  Tooltip,
+  // Tooltip, // uncomment with “Order physical copy” block below (local testing)
 } from '@mui/material'
 import {
   ArrowBack,
@@ -30,7 +30,7 @@ import {
   Close,
   KeyboardArrowUp,
   KeyboardArrowDown,
-  LocalShipping,
+  // LocalShipping, // uncomment with physical copy block below
 } from '@mui/icons-material'
 import { MainLayout } from '../components/Layout/MainLayout'
 import { ColoringPageCard } from '../components/ColoringPageCard'
@@ -41,8 +41,7 @@ import { useToggleFavorite, useMoveToFolder } from '../hooks/useColoringPages'
 import { useFolderPageList } from '../hooks/useFolderPageList'
 import { useToast } from '../contexts/ToastContext'
 import { downloadImage, downloadImagesAsPdf, downloadImagesAsZip } from '../utils/downloadImage'
-import { MIN_PAGES_FOR_PHYSICAL_PRINT, selectPagesReadyForPrint } from '../constants/printOrder'
-
+// import { MIN_PAGES_FOR_PHYSICAL_PRINT, selectPagesReadyForPrint } from '../constants/printOrder' // physical copy testing
 const DRAG_TYPE = 'application/x-coloring-page-id'
 const FOLDER_PAGE_SIZE = 50
 
@@ -257,15 +256,16 @@ export const FolderView = () => {
     }
   }
 
-  const printReadyPages = useMemo(() => selectPagesReadyForPrint(orderedPages), [orderedPages])
-  const printReadyCount = printReadyPages.length
-  const canOrderPhysicalPrint =
-    !isEmpty && canDownloadPdf && printReadyCount >= MIN_PAGES_FOR_PHYSICAL_PRINT
-  const orderPhysicalPrintTooltip = useMemo(() => {
-    if (isEmpty || !canDownloadPdf) return ''
-    if (printReadyCount >= MIN_PAGES_FOR_PHYSICAL_PRINT) return ''
-    return `Physical printing needs at least ${MIN_PAGES_FOR_PHYSICAL_PRINT} finished pages in this folder (${printReadyCount} ready).`
-  }, [isEmpty, canDownloadPdf, printReadyCount])
+  // --- Order physical copy (local testing): uncomment imports above + this block + JSX comment below ---
+  // const printReadyPages = useMemo(() => selectPagesReadyForPrint(orderedPages), [orderedPages])
+  // const printReadyCount = printReadyPages.length
+  // const canOrderPhysicalPrint =
+  //   !isEmpty && canDownloadPdf && printReadyCount >= MIN_PAGES_FOR_PHYSICAL_PRINT
+  // const orderPhysicalPrintTooltip = useMemo(() => {
+  //   if (isEmpty || !canDownloadPdf) return ''
+  //   if (printReadyCount >= MIN_PAGES_FOR_PHYSICAL_PRINT) return ''
+  //   return `Physical printing needs at least ${MIN_PAGES_FOR_PHYSICAL_PRINT} finished pages in this folder (${printReadyCount} ready).`
+  // }, [isEmpty, canDownloadPdf, printReadyCount])
 
   const isLoading = foldersLoading
   const notFound = !isLoading && !folder
@@ -359,6 +359,7 @@ export const FolderView = () => {
                 Download all as PDF{!canDownloadPdf ? ' (Upgrade required)' : ''}
               </MenuItem>
             </Menu>
+            {/*
             <Tooltip
               title={orderPhysicalPrintTooltip}
               placement="top"
@@ -387,6 +388,7 @@ export const FolderView = () => {
                 </Button>
               </span>
             </Tooltip>
+            */}
             <Button
               variant="outlined"
               startIcon={<Edit />}
