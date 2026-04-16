@@ -67,6 +67,9 @@ export const ColoringPageCard = ({
   userId,
 }) => {
   const imageUrl = page.imageUrl || page.thumbnailUrl
+  const titleTrim = (page.title || '').trim()
+  const promptTrim = (page.prompt || '').trim()
+  const showPromptInPreview = Boolean(promptTrim && promptTrim !== titleTrim)
   const theme = useTheme()
   const { showToast } = useToast()
   const [downloadAnchor, setDownloadAnchor] = useState(null)
@@ -305,7 +308,7 @@ export const ColoringPageCard = ({
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             {page.title}
           </Typography>
-          {page.prompt ? (
+          {showPromptInPreview ? (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               {page.prompt}
             </Typography>
