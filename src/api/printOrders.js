@@ -45,31 +45,23 @@ function normalizePdfKeysPayload(raw) {
     data.interiorUploadUrl ?? data.interior?.uploadUrl ?? data.uploadUrls?.interior ?? data.interiorPutUrl
   const coverUploadUrl =
     data.coverUploadUrl ?? data.cover?.uploadUrl ?? data.uploadUrls?.cover ?? data.coverPutUrl
+  const contentType =
+    typeof data.contentType === 'string' && data.contentType.trim() ? data.contentType.trim() : 'application/pdf'
   return {
     interiorPdfKey,
     coverPdfKey,
     interiorUploadUrl,
     coverUploadUrl,
+    contentType,
   }
 }
 
 /**
- * Optional: server generates PDFs from folder page order. Not in the public guide — backend may implement.
- */
-export async function prepareFolderPrintPdfs(idToken, userId, { bookId, pageIdsInOrder }) {
-  return printApiRequest('/print-order/prepare-pdfs', {
-    method: 'POST',
-    idToken,
-    userId,
-    body: { bookId, pageIdsInOrder },
-  })
-}
-
-/**
- * Optional: presigned PUT URLs for client-uploaded print PDFs. Not in the public guide — backend may implement.
+ * Presigned S3 PUT URLs for interior + cover PDFs (browser uploads directly to the print bucket).
+ * POST /api/print-order/pdf-upload-url — body: { bookId }
  */
 export async function requestPrintPdfUploadUrls(idToken, userId, bookId) {
-  return printApiRequest('/print-order/pdf-upload-urls', {
+  return printApiRequest('/print-order/pdf-upload-url', {
     method: 'POST',
     idToken,
     userId,
@@ -96,8 +88,7 @@ export async function ensurePrintPdfKeys(idToken, userId, bookId, { coverBlob, i
   const urlsRes = await requestPrintPdfUploadUrls(idToken, userId, bookId)
   if (!urlsRes.success) {
     const hint =
-      'Could not get print upload URLs. Implement POST /print-order/pdf-upload-urls (presigned PUT) ' +
-      'or POST /print-order/prepare-pdfs so PDFs exist in the print bucket before checkout.'
+      'Could not get print upload URLs. Expected POST /print-order/pdf-upload-url to return presigned PUT URLs.'
     const err = new Error(urlsRes.error || hint)
     err.status = urlsRes.status
     throw err
@@ -108,8 +99,9 @@ export async function ensurePrintPdfKeys(idToken, userId, bookId, { coverBlob, i
     throw new Error('Print upload response missing interiorPdfKey or coverPdfKey')
   }
   if (n.interiorUploadUrl && n.coverUploadUrl) {
-    await putPdfToPresignedUrl(n.interiorUploadUrl, interiorBlob)
-    await putPdfToPresignedUrl(n.coverUploadUrl, coverBlob)
+    const ct = n.contentType || 'application/pdf'
+    await putPdfToPresignedUrl(n.interiorUploadUrl, interiorBlob, ct)
+    await putPdfToPresignedUrl(n.coverUploadUrl, coverBlob, ct)
     return { interiorPdfKey: n.interiorPdfKey, coverPdfKey: n.coverPdfKey }
   }
 
@@ -119,25 +111,21 @@ export async function ensurePrintPdfKeys(idToken, userId, bookId, { coverBlob, i
 }
 
 /**
- * Try server-side prepare (page order), then fall back to presigned client upload.
+ * Lulu cover dimensions for the single-page cover PDF (mirrors Lulu POST /cover-dimensions/).
+ * POST /api/print-order/cover-dimensions
+ * @param {object} body
+ * @param {string} body.podPackageId
+ * @param {string} body.bookOrientation
+ * @param {number} body.pageCount - interior page count (>= 2)
+ * @param {'pt'|'mm'|'inch'} [body.unit]
  */
-export async function ensurePrintPdfKeysWithOrder(
-  idToken,
-  userId,
-  bookId,
-  pageIdsInOrder,
-  { coverBlob, interiorBlob },
-) {
-  if (pageIdsInOrder?.length >= 3) {
-    const prep = await prepareFolderPrintPdfs(idToken, userId, { bookId, pageIdsInOrder })
-    if (prep.success) {
-      const n = normalizePdfKeysPayload(prep)
-      if (n?.interiorPdfKey && n?.coverPdfKey && !n.interiorUploadUrl && !n.coverUploadUrl) {
-        return { interiorPdfKey: n.interiorPdfKey, coverPdfKey: n.coverPdfKey }
-      }
-    }
-  }
-  return ensurePrintPdfKeys(idToken, userId, bookId, { coverBlob, interiorBlob })
+export async function getPrintCoverDimensions(idToken, userId, body) {
+  return printApiRequest('/print-order/cover-dimensions', {
+    method: 'POST',
+    idToken,
+    userId,
+    body,
+  })
 }
 
 export async function getPrintQuote(idToken, userId, quoteBody) {

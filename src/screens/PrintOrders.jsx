@@ -15,25 +15,18 @@ import {
   Chip,
   CircularProgress,
 } from '@mui/material'
-import { ArrowBack } from '@mui/icons-material'
+import { ArrowBack, Refresh } from '@mui/icons-material'
 import { MainLayout } from '../components/Layout/MainLayout'
 import { useAuth } from '../hooks/useAuth'
 import { usePrintOrdersList } from '../hooks/usePrintOrders'
 import { useToast } from '../contexts/ToastContext'
-
-function formatMoney(amount, currency) {
-  const c = (currency || 'usd').toLowerCase()
-  const n = Number(amount)
-  if (!Number.isFinite(n)) return '—'
-  try {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: c === 'usd' ? 'USD' : 'USD',
-    }).format(c === 'usd' ? n / 100 : n)
-  } catch {
-    return `${n} ${currency || ''}`
-  }
-}
+import { formatPrintOrderMoney } from '../utils/printOrderMoney'
+import {
+  getPrintOrderDisplayOrderNumber,
+  getPrintOrderErrorMessage,
+  getPrintOrderShippingMethodLabel,
+  getPrintOrderStatusLabel,
+} from '../utils/printOrderDisplay'
 
 function statusColor(status) {
   const s = (status || '').toLowerCase()
@@ -49,7 +42,7 @@ export const PrintOrders = () => {
   const { showToast } = useToast()
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { data: orders = [], isLoading, isError, error } = usePrintOrdersList(user?.uid)
+  const { data: orders = [], isLoading, isFetching, isError, error, refetch } = usePrintOrdersList(user?.uid)
   const paidFlag = searchParams.get('paid')
 
   useEffect(() => {
@@ -72,9 +65,21 @@ export const PrintOrders = () => {
       >
         Back
       </Button>
-      <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
-        Print orders
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
+          Print orders
+        </Typography>
+        <Button
+          type="button"
+          variant="outlined"
+          size="small"
+          startIcon={<Refresh />}
+          onClick={() => refetch()}
+          disabled={!user?.uid || isFetching}
+        >
+          {isFetching && !isLoading ? 'Refreshing…' : 'Refresh'}
+        </Button>
+      </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         Orders placed through Stripe for physical books. Open an order for tracking and fulfillment details.
       </Typography>
@@ -101,9 +106,10 @@ export const PrintOrders = () => {
             <TableHead>
               <TableRow>
                 <TableCell>Date</TableCell>
+                <TableCell>Order</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell align="right">Total</TableCell>
-                <TableCell>Package</TableCell>
+                <TableCell>Shipping</TableCell>
                 <TableCell align="right" />
               </TableRow>
             </TableHead>
@@ -118,12 +124,33 @@ export const PrintOrders = () => {
                         })
                       : '—'}
                   </TableCell>
+                  <TableCell>{getPrintOrderDisplayOrderNumber(row) || '—'}</TableCell>
                   <TableCell>
-                    <Chip size="small" label={row.status || 'unknown'} color={statusColor(row.status)} />
+                    <Chip
+                      size="small"
+                      label={getPrintOrderStatusLabel(row.status)}
+                      color={statusColor(row.status)}
+                    />
+                    {(() => {
+                      const err = getPrintOrderErrorMessage(row)
+                      if (!err) return null
+                      const short = err.length > 100 ? `${err.slice(0, 100)}…` : err
+                      return (
+                        <Typography
+                          variant="caption"
+                          color="error"
+                          component="div"
+                          title={err}
+                          sx={{ mt: 0.5, maxWidth: 280, display: 'block', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                        >
+                          {short}
+                        </Typography>
+                      )
+                    })()}
                   </TableCell>
-                  <TableCell align="right">{formatMoney(row.amountTotal, row.currency)}</TableCell>
+                  <TableCell align="right">{formatPrintOrderMoney(row.amountTotal, row.currency)}</TableCell>
                   <TableCell sx={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {row.podPackageId || '—'}
+                    {getPrintOrderShippingMethodLabel(row) || '—'}
                   </TableCell>
                   <TableCell align="right">
                     <Button component={RouterLink} to={`/print-orders/${encodeURIComponent(row.orderId)}`} size="small">

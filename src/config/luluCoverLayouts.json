@@ -1,0 +1,20 @@
+{
+    "portrait": {
+      "totalWidthIn": 12.67,
+      "totalHeightIn": 9.46,
+      "trimWidthIn": 6.14,
+      "trimHeightIn": 9.21,
+      "bleedIn": 0.125,
+      "spineWidthIn": 0.1321,
+      "safeMarginIn": 0.5
+    },
+    "landscape": {
+      "totalWidthIn": 18.38,
+      "totalHeightIn": 7.25,
+      "trimWidthIn": 9,
+      "trimHeightIn": 7,
+      "bleedIn": 0.125,
+      "spineWidthIn": 0.1321,
+      "safeMarginIn": 0.5
+    }
+  }

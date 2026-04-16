@@ -1,6 +1,22 @@
 import { useState } from 'react'
-import { Card, CardMedia, CardContent, IconButton, Typography, Menu, MenuItem, Checkbox, CircularProgress, useTheme } from '@mui/material'
-import { Favorite, Download, MoreVert, DriveFileMoveOutlined, Print } from '@mui/icons-material'
+import {
+  Card,
+  CardMedia,
+  CardContent,
+  IconButton,
+  Typography,
+  Menu,
+  MenuItem,
+  Checkbox,
+  CircularProgress,
+  useTheme,
+  Dialog,
+  DialogContent,
+  Box,
+  Button,
+  Stack,
+} from '@mui/material'
+import { Favorite, Download, MoreVert, DriveFileMoveOutlined, Print, Close } from '@mui/icons-material'
 import { downloadImage, printColoringPages } from '../utils/downloadImage'
 import { useToast } from '../contexts/ToastContext'
 
@@ -57,6 +73,7 @@ export const ColoringPageCard = ({
   const [moreAnchor, setMoreAnchor] = useState(null)
   const [downloadLoading, setDownloadLoading] = useState(false)
   const [printLoading, setPrintLoading] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   const handleDownloadClick = (e) => {
     setDownloadAnchor(e.currentTarget)
@@ -81,7 +98,7 @@ export const ColoringPageCard = ({
   }
 
   const handlePrint = async (e) => {
-    e.stopPropagation()
+    e?.stopPropagation?.()
     setPrintLoading(true)
     try {
       await printColoringPages(
@@ -94,6 +111,13 @@ export const ColoringPageCard = ({
       setPrintLoading(false)
     }
   }
+
+  const handlePreviewOpen = (e) => {
+    e.stopPropagation()
+    setPreviewOpen(true)
+  }
+
+  const handlePreviewClose = () => setPreviewOpen(false)
 
   const handleDragStart = (e) => {
     if (!isDraggable) return
@@ -146,7 +170,8 @@ export const ColoringPageCard = ({
         height="300"
         image={imageUrl}
         alt={page.title}
-        sx={{ objectFit: 'cover' }}
+        onClick={handlePreviewOpen}
+        sx={{ objectFit: 'cover', cursor: 'zoom-in' }}
       />
       {selectable && (
         <Checkbox
@@ -239,6 +264,106 @@ export const ColoringPageCard = ({
           {page.title}
         </Typography>
       </CardContent>
+      <Dialog
+        open={previewOpen}
+        onClose={handlePreviewClose}
+        maxWidth="md"
+        fullWidth
+        BackdropProps={{
+          sx: {
+            backdropFilter: 'blur(8px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+          },
+        }}
+        PaperProps={{
+          sx: {
+            backgroundColor: 'background.paper',
+            borderRadius: 3,
+            overflow: 'hidden',
+          },
+        }}
+      >
+        <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+            <IconButton onClick={handlePreviewClose} aria-label="Close preview">
+              <Close />
+            </IconButton>
+          </Box>
+          <Box
+            component="img"
+            src={imageUrl}
+            alt={page.title}
+            sx={{
+              width: '100%',
+              maxHeight: { xs: '50vh', sm: '62vh' },
+              objectFit: 'contain',
+              borderRadius: 2,
+              backgroundColor: 'action.hover',
+              mb: 2,
+            }}
+          />
+          <Typography variant="h6" sx={{ fontWeight: 700 }}>
+            {page.title}
+          </Typography>
+          {page.prompt ? (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              {page.prompt}
+            </Typography>
+          ) : null}
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1}
+            sx={{ mt: 2, justifyContent: 'space-between', alignItems: { sm: 'center' } }}
+          >
+            <Stack direction="row" spacing={1} flexWrap="wrap">
+              <Button
+                variant="contained"
+                startIcon={<Download />}
+                disabled={downloadLoading}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleDownloadClick(e)
+                }}
+              >
+                Download
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={printLoading ? <CircularProgress size={16} color="inherit" /> : <Print />}
+                disabled={printLoading}
+                onClick={handlePrint}
+              >
+                Print
+              </Button>
+              <Button
+                variant={page.isFavorite ? 'contained' : 'outlined'}
+                color="secondary"
+                startIcon={<Favorite />}
+                disabled={isFavoritePending}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onToggleFavorite(page.id)
+                }}
+              >
+                {page.isFavorite ? 'Favourited' : 'Add to favourites'}
+              </Button>
+            </Stack>
+            {onRemoveFromFolder ? (
+              <Button
+                variant="text"
+                color="error"
+                startIcon={<DriveFileMoveOutlined />}
+                onClick={() => {
+                  onRemoveFromFolder(page.id)
+                  handlePreviewClose()
+                }}
+              >
+                Remove from folder
+              </Button>
+            ) : null}
+          </Stack>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

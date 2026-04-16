@@ -9,6 +9,8 @@ export const usePrintOrdersList = (userId) => {
       const token = await getCurrentUserIdToken()
       if (!token) throw new Error('Not signed in')
       const res = await listPrintOrders(token, userId)
+      console.log('[PrintOrders] listPrintOrders response:', res)
+      console.log('[PrintOrders] listPrintOrders orders payload:', res?.data?.orders ?? res?.data)
       if (!res.success) throw new Error(res.error || 'Failed to load orders')
       return res.data?.orders ?? []
     },
@@ -23,6 +25,8 @@ export const usePrintOrderDetail = (userId, orderId) => {
       const token = await getCurrentUserIdToken()
       if (!token) throw new Error('Not signed in')
       const res = await getPrintOrder(token, userId, orderId)
+      console.log('[PrintOrders] getPrintOrder response:', res)
+      console.log('[PrintOrders] getPrintOrder order payload:', res?.data?.order ?? res?.data)
       if (!res.success) throw new Error(res.error || 'Failed to load order')
       return res.data?.order ?? res.data
     },

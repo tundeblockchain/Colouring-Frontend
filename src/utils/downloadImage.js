@@ -204,57 +204,152 @@ function loadImage(dataUrl) {
   })
 }
 
+function getPrintImageCacheKey(item, userId) {
+  const id = item?.id != null && String(item.id).trim() !== '' ? String(item.id).trim() : ''
+  const url = item?.url != null && String(item.url).trim() !== '' ? String(item.url).trim() : ''
+  if (!id && !url) return ''
+  return `${userId || 'anon'}::${id || url}`
+}
+
+async function fetchPrintImageBlob(item, userId) {
+  const { url, id } = item
+  const fetchUrl = id && userId ? `${API_BASE_URL}/coloring-pages/${id}/image` : url
+  const headers = {}
+  if (id && userId) {
+    headers['X-User-Id'] = userId
+    headers['Accept'] = 'image/png, image/jpeg'
+  }
+  const response = await fetch(fetchUrl, { headers: Object.keys(headers).length ? headers : undefined })
+  if (!response.ok) {
+    throw new Error(`Failed to fetch print image (${response.status})`)
+  }
+  return response.blob()
+}
+
+async function getPrintImageBlobWithCache(item, userId, cacheMap, cacheTtlMs) {
+  if (!cacheMap || typeof cacheMap.get !== 'function' || typeof cacheMap.set !== 'function') {
+    return fetchPrintImageBlob(item, userId)
+  }
+  const key = getPrintImageCacheKey(item, userId)
+  const now = Date.now()
+  if (key) {
+    const cached = cacheMap.get(key)
+    if (
+      cached &&
+      cached.blob instanceof Blob &&
+      Number.isFinite(cached.fetchedAt) &&
+      now - cached.fetchedAt <= cacheTtlMs
+    ) {
+      return cached.blob
+    }
+  }
+  const blob = await fetchPrintImageBlob(item, userId)
+  if (key) {
+    cacheMap.set(key, { blob, fetchedAt: now })
+  }
+  return blob
+}
+
 /**
  * Same fetch + jsPDF layout as "Download as PDF" (downloadImagesAsPdf): one /image request at a time,
  * then addImage(..., 'PNG', ...). Returns a PDF Blob (does not trigger a download).
  * @param {Array<{ url: string, title?: string, id?: string }>} items
  * @param {string | null} [userId]
- * @param {{ onProgress?: (percent: number) => void }} [options]
+ * @param {{
+ *   onProgress?: (percent: number) => void
+ *   onPreparingPage?: (currentPage: number, totalPages: number) => void
+ *   globalPageStart?: number
+ *   globalPageTotal?: number
+ *   pageSizePts?: { width: number, height: number }
+ *   imagePlacementRectPts?: { x: number, y: number, width: number, height: number }
+ *   imagePlacementRectsPts?: Array<{ x: number, y: number, width: number, height: number }>
+ *   forceSinglePage?: boolean
+ *   imageBlobCache?: Map<string, { blob: Blob, fetchedAt: number }>
+ *   imageBlobCacheTtlMs?: number
+ * }} [options]
+ * globalPageStart = 1-based index of the first item in this segment (for multi-part books: cover=1, interior=2).
+ * When `pageSizePts` is set (Lulu trim in PDF points), every page uses that exact width × height (MediaBox), e.g. from `trimSizePointsFromPodPackageId()`. Otherwise defaults to A4.
  * @returns {Promise<Blob>}
  */
 export async function buildImagesPdfBlob(items, userId = null, options = {}) {
   if (!items?.length) {
     throw new Error('No images to include in the PDF')
   }
-  const { onProgress } = options
+  const {
+    onProgress,
+    onPreparingPage,
+    globalPageStart = 1,
+    globalPageTotal,
+    pageSizePts,
+    imagePlacementRectPts,
+    imagePlacementRectsPts,
+    forceSinglePage = false,
+    imageBlobCache,
+    imageBlobCacheTtlMs = 10 * 60 * 1000,
+  } = options
   const total = items.length
+  const labelTotal = globalPageTotal ?? total
   let pdf = null
+  const fixedTrim =
+    pageSizePts &&
+    typeof pageSizePts.width === 'number' &&
+    typeof pageSizePts.height === 'number' &&
+    pageSizePts.width > 0 &&
+    pageSizePts.height > 0
+      ? { width: pageSizePts.width, height: pageSizePts.height }
+      : null
   for (let i = 0; i < items.length; i++) {
-    const { url, id } = items[i]
-    const fetchUrl = id && userId ? `${API_BASE_URL}/coloring-pages/${id}/image` : url
-    const headers = {}
-    if (id && userId) {
-      headers['X-User-Id'] = userId
-      headers['Accept'] = 'image/png, image/jpeg'
-    }
-    const response = await fetch(fetchUrl, { headers: Object.keys(headers).length ? headers : undefined })
-    const blob = await response.blob()
+    const currentPage = globalPageStart + i
+    onPreparingPage?.(currentPage, labelTotal)
+    const blob = await getPrintImageBlobWithCache(items[i], userId, imageBlobCache, imageBlobCacheTtlMs)
     const dataUrl = await blobToDataUrl(blob)
     const img = await loadImage(dataUrl)
     if (!pdf) {
-      pdf = new jsPDF({
-        orientation: img.width >= img.height ? 'landscape' : 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      })
-    } else {
+      if (fixedTrim) {
+        const w = fixedTrim.width
+        const h = fixedTrim.height
+        pdf = new jsPDF({
+          unit: 'pt',
+          format: [w, h],
+          orientation: w >= h ? 'landscape' : 'portrait',
+          compress: true,
+        })
+      } else {
+        pdf = new jsPDF({
+          orientation: img.width >= img.height ? 'landscape' : 'portrait',
+          unit: 'mm',
+          format: 'a4',
+        })
+      }
+    } else if (!forceSinglePage) {
       pdf.addPage()
     }
     const pageW = pdf.internal.pageSize.getWidth()
     const pageH = pdf.internal.pageSize.getHeight()
+    const candidateRect = Array.isArray(imagePlacementRectsPts) ? imagePlacementRectsPts[i] : imagePlacementRectPts
+    const placementRect =
+      candidateRect &&
+      Number.isFinite(candidateRect.x) &&
+      Number.isFinite(candidateRect.y) &&
+      Number.isFinite(candidateRect.width) &&
+      Number.isFinite(candidateRect.height) &&
+      candidateRect.width > 0 &&
+      candidateRect.height > 0
+        ? candidateRect
+        : { x: 0, y: 0, width: pageW, height: pageH }
     const imgAspect = img.width / img.height
-    const pageAspect = pageW / pageH
+    const pageAspect = placementRect.width / placementRect.height
     let w
     let h
     if (imgAspect > pageAspect) {
-      w = pageW
-      h = pageW / imgAspect
+      w = placementRect.width
+      h = placementRect.width / imgAspect
     } else {
-      h = pageH
-      w = pageH * imgAspect
+      h = placementRect.height
+      w = placementRect.height * imgAspect
     }
-    const x = (pageW - w) / 2
-    const y = (pageH - h) / 2
+    const x = placementRect.x + (placementRect.width - w) / 2
+    const y = placementRect.y + (placementRect.height - h) / 2
     pdf.addImage(dataUrl, 'PNG', x, y, w, h)
     const percent = Math.round(((i + 1) / total) * 100)
     onProgress?.(percent)
