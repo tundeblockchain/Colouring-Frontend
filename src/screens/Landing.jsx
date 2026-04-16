@@ -328,10 +328,11 @@ export const Landing = () => {
                 mb: 2,
               }}
             >
-              AI colouring page generator — make printable pages in seconds
+              Your very own printable coloring pages for the joy of creating
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 3, maxWidth: 560, mx: 'auto' }}>
-              {SITE_NAME} is the AI colouring page generator for kids, grown-ups, and anyone who loves to colour.
+              {SITE_NAME} is for kids, grown-ups, and anyone who loves putting pencil to paper — turn gentle ideas into
+              pages you can print and colour whenever you like.
             </Typography>
             <Button
               component={Link}
