@@ -20,7 +20,7 @@ import {
   ImageOutlined,
   FavoriteBorder,
   FolderOutlined,
-  ShoppingBagOutlined,
+  // ShoppingBagOutlined, // print orders — re-enable with menu item when launching in production
   SettingsOutlined,
   LogoutOutlined,
   DarkMode,
@@ -35,7 +35,7 @@ const menuItems = [
   { icon: ImageOutlined, path: '/gallery', label: 'Gallery', tourId: 'tour-gallery' },
   { icon: FavoriteBorder, path: '/favorites', label: 'Favorites', tourId: 'tour-favorites' },
   { icon: FolderOutlined, path: '/folders', label: 'Folders', tourId: 'tour-folders' },
-  { icon: ShoppingBagOutlined, path: '/print-orders', label: 'Print orders', tourId: null },
+  // { icon: ShoppingBagOutlined, path: '/print-orders', label: 'Print orders', tourId: null },
   { icon: SettingsOutlined, path: '/settings', label: 'Settings', tourId: 'tour-settings' },
 ]
 
@@ -79,10 +79,7 @@ export const Sidebar = () => {
       <List sx={{ width: '100%', flex: 1 }}>
         {menuItems.map((item) => {
           const Icon = item.icon
-          const isActive =
-            item.path === '/print-orders'
-              ? location.pathname.startsWith('/print-orders')
-              : location.pathname === item.path
+          const isActive = location.pathname === item.path
 
           return (
             <ListItem key={item.path} disablePadding>

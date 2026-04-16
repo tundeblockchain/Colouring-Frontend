@@ -26,7 +26,6 @@ import {
   ExpandMore,
   AutoAwesome,
   Print,
-  LocalShipping,
 } from '@mui/icons-material'
 import { MainLayout } from '../components/Layout/MainLayout'
 import { useAuth } from '../hooks/useAuth'
@@ -38,7 +37,7 @@ import { improvePrompt } from '../api/prompts'
 import { ColoringPage } from '../models/coloringPage'
 import { trackCreationType } from '../utils/analytics'
 import { downloadImagesAsPdf, printColoringPages } from '../utils/downloadImage'
-import { MIN_PAGES_FOR_PHYSICAL_PRINT, selectPagesReadyForPrint } from '../constants/printOrder'
+import { MIN_PAGES_FOR_PHYSICAL_PRINT } from '../constants/printOrder'
 
 const BOOK_GENERATION_MAX_PAGES = 50
 
@@ -315,23 +314,23 @@ export const CreateColoringPage = () => {
   const effectiveBookFolderId =
     bookFolderId || generatedPreviews.find((p) => p.folderId)?.folderId || null
 
-  const bookReadyPagesCount = useMemo(
-    () => (isBookTab ? selectPagesReadyForPrint(generatedPreviews).length : 0),
-    [isBookTab, generatedPreviews],
-  )
-  const canOrderPhysicalPrint =
-    isBookTab &&
-    canDownloadPdf &&
-    !!effectiveBookFolderId &&
-    hasPreviews &&
-    bookReadyPagesCount >= MIN_PAGES_FOR_PHYSICAL_PRINT
-  const orderPhysicalPrintTooltip = useMemo(() => {
-    if (!isBookTab || !canDownloadPdf) return ''
-    if (!hasPreviews) return ''
-    if (!effectiveBookFolderId) return ''
-    if (bookReadyPagesCount >= MIN_PAGES_FOR_PHYSICAL_PRINT) return ''
-    return `Physical printing needs at least ${MIN_PAGES_FOR_PHYSICAL_PRINT} finished pages in this book (you have ${bookReadyPagesCount} ready). Generate more pages or wait for them to finish.`
-  }, [isBookTab, canDownloadPdf, hasPreviews, effectiveBookFolderId, bookReadyPagesCount])
+  // const bookReadyPagesCount = useMemo(
+  //   () => (isBookTab ? selectPagesReadyForPrint(generatedPreviews).length : 0),
+  //   [isBookTab, generatedPreviews],
+  // )
+  // const canOrderPhysicalPrint =
+  //   isBookTab &&
+  //   canDownloadPdf &&
+  //   !!effectiveBookFolderId &&
+  //   hasPreviews &&
+  //   bookReadyPagesCount >= MIN_PAGES_FOR_PHYSICAL_PRINT
+  // const orderPhysicalPrintTooltip = useMemo(() => {
+  //   if (!isBookTab || !canDownloadPdf) return ''
+  //   if (!hasPreviews) return ''
+  //   if (!effectiveBookFolderId) return ''
+  //   if (bookReadyPagesCount >= MIN_PAGES_FOR_PHYSICAL_PRINT) return ''
+  //   return `Physical printing needs at least ${MIN_PAGES_FOR_PHYSICAL_PRINT} finished pages in this book (you have ${bookReadyPagesCount} ready). Generate more pages or wait for them to finish.`
+  // }, [isBookTab, canDownloadPdf, hasPreviews, effectiveBookFolderId, bookReadyPagesCount])
   const bookProgressPercent =
     bookTotalPages > 0 ? Math.round((bookPagesComplete / bookTotalPages) * 100) : 0
 
@@ -800,6 +799,7 @@ export const CreateColoringPage = () => {
                     {pdfDownloading ? 'Preparing…' : 'Download Book'}
                   </Button>
                 )}
+                {/* Order physical copy — re-enable when launching in production
                 {isBookTab && (
                   <Tooltip
                     title={orderPhysicalPrintTooltip}
@@ -842,6 +842,7 @@ export const CreateColoringPage = () => {
                     </span>
                   </Tooltip>
                 )}
+                */}
                 <Button
                   size="small"
                   variant="outlined"
