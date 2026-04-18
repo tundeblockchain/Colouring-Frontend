@@ -1,12 +1,27 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getUserColoringPages,
+  getPromptStylePresets,
   generateColoringPage,
   generateColoringBook,
   toggleFavorite,
   deleteColoringPage,
   moveColoringPageToFolder,
 } from '../api/coloringPages'
+
+export const usePromptStylePresets = () => {
+  return useQuery({
+    queryKey: ['promptStylePresets'],
+    queryFn: async () => {
+      const result = await getPromptStylePresets()
+      if (result.success) {
+        return result.data?.presets ?? []
+      }
+      return []
+    },
+    staleTime: 1000 * 60 * 30,
+  })
+}
 
 export const useColoringPages = (userId, filters = {}) => {
   return useQuery({

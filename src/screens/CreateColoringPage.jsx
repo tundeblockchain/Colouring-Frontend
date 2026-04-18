@@ -30,7 +30,8 @@ import {
 import { MainLayout } from '../components/Layout/MainLayout'
 import { useAuth } from '../hooks/useAuth'
 import { useUser } from '../hooks/useUser'
-import { useGenerateColoringPage, useGenerateColoringBook } from '../hooks/useColoringPages'
+import { useGenerateColoringPage, useGenerateColoringBook, usePromptStylePresets } from '../hooks/useColoringPages'
+import { PromptStylePicker, STANDARD_PROMPT_STYLE_ID } from '../components/PromptStylePicker'
 import { useCreateScreenTour } from '../hooks/useOnboardingTour'
 import { pollColoringPagesBatch } from '../api/coloringPages'
 import { improvePrompt } from '../api/prompts'
@@ -69,6 +70,8 @@ export const CreateColoringPage = () => {
   const { data: userProfile } = useUser(user?.uid)
   const generateMutation = useGenerateColoringPage()
   const generateBookMutation = useGenerateColoringBook()
+  const { data: promptStylePresets = [], isFetching: promptStylePresetsLoading } =
+    usePromptStylePresets()
 
   const isFreePlan = userProfile?.plan === 'free'
   const hasSubscription = !isFreePlan
@@ -107,6 +110,7 @@ export const CreateColoringPage = () => {
   const [pdfDownloading, setPdfDownloading] = useState(false)
   const [printLoading, setPrintLoading] = useState(false)
   const [bookFolderId, setBookFolderId] = useState(null)
+  const [promptStyleSelection, setPromptStyleSelection] = useState(STANDARD_PROMPT_STYLE_ID)
 
   useEffect(() => {
     setMultiImagePreviewIndex((prev) => {
@@ -215,6 +219,9 @@ export const CreateColoringPage = () => {
           quality,
           dimensions,
           numPages: count,
+          ...(promptStyleSelection !== STANDARD_PROMPT_STYLE_ID
+            ? { promptStyleId: promptStyleSelection }
+            : {}),
         })
       } else {
         result = await generateMutation.mutateAsync({
@@ -236,6 +243,9 @@ export const CreateColoringPage = () => {
           ...(activeTab === 'wordArt' ? { wordArtStyle } : {}),
           ...(activeTab === 'frontCover' && titleForFrontCover?.trim()
             ? { titleForFrontCover: titleForFrontCover.trim() }
+            : {}),
+          ...(activeTab !== 'photo' && promptStyleSelection !== STANDARD_PROMPT_STYLE_ID
+            ? { promptStyleId: promptStyleSelection }
             : {}),
         })
       }
@@ -1304,6 +1314,21 @@ export const CreateColoringPage = () => {
               </Button>
             </Box>
           </Box>
+          )}
+
+          {activeTab !== 'photo' && (
+            <Box sx={{ marginBottom: 3 }}>
+              <PromptStylePicker
+                value={promptStyleSelection}
+                onChange={setPromptStyleSelection}
+                presets={promptStylePresets}
+                loading={promptStylePresetsLoading}
+                disabled={
+                  (activeTab === 'frontCover' && !canUseFrontCover) ||
+                  (activeTab === 'book' && !canUseBook)
+                }
+              />
+            </Box>
           )}
 
           {activeTab !== 'photo' && (

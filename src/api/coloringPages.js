@@ -2,6 +2,30 @@ import { ColoringPage } from '../models/coloringPage'
 import { apiRequest } from './apiClient'
 
 /**
+ * List prompt style presets (no auth).
+ * GET /api/prompt-style-presets
+ * @returns {{ success: boolean, data?: { presets: Array<{ id: string, name: string, sortOrder?: number }> }, error?: string }}
+ */
+export const getPromptStylePresets = async () => {
+  const result = await apiRequest('/prompt-style-presets', {
+    method: 'GET',
+  })
+  if (result.success) {
+    return {
+      success: true,
+      data: {
+        presets: Array.isArray(result.data?.presets) ? result.data.presets : [],
+      },
+    }
+  }
+  return {
+    success: false,
+    error: result.error || 'Failed to load style presets',
+    data: { presets: [] },
+  }
+}
+
+/**
  * Get a presigned S3 upload URL for photo-based generation.
  * POST /api/coloring-pages/photo-upload-url
  *
@@ -64,7 +88,21 @@ const uploadFileToPresignedUrl = async (uploadUrl, file, contentType) => {
  * @returns {{ success: boolean, data?: { coloringPages: ColoringPage[], creditsRemaining?: number }, error?: string }}
  */
 export const generateColoringPage = async (params) => {
-  const { userId, prompt, title, type, style, quality, dimensions, folderId, numImages = 1, imageFile, wordArtStyle, titleForFrontCover } = params
+  const {
+    userId,
+    prompt,
+    title,
+    type,
+    style,
+    quality,
+    dimensions,
+    folderId,
+    numImages = 1,
+    imageFile,
+    wordArtStyle,
+    titleForFrontCover,
+    promptStyleId,
+  } = params
 
   const isPhoto = type === 'photo'
   const hasPrompt = prompt != null && String(prompt).trim().length > 0
@@ -135,6 +173,10 @@ export const generateColoringPage = async (params) => {
     if (type === 'frontCover' && titleForFrontCover != null && String(titleForFrontCover).trim()) {
       body.titleForFrontCover = String(titleForFrontCover).trim()
     }
+    const trimmedStyle = promptStyleId != null ? String(promptStyleId).trim() : ''
+    if (trimmedStyle) {
+      body.promptStyleId = trimmedStyle
+    }
   }
 
   const result = await apiRequest('/coloring-pages/generate', {
@@ -175,7 +217,7 @@ export const generateColoringPage = async (params) => {
  * @returns {{ success: boolean, data?: { coloringPages: ColoringPage[], folder?: object, creditsRemaining?: number }, error?: string }}
  */
 export const generateColoringBook = async (params) => {
-  const { userId, title, prompt, quality, dimensions, numPages } = params
+  const { userId, title, prompt, quality, dimensions, numPages, promptStyleId } = params
 
   if (!userId) {
     return { success: false, error: 'User is required' }
@@ -197,6 +239,10 @@ export const generateColoringBook = async (params) => {
     numPages: count,
     quality: qualityValue,
     dimensions: size,
+  }
+  const trimmedBookStyle = promptStyleId != null ? String(promptStyleId).trim() : ''
+  if (trimmedBookStyle) {
+    body.promptStyleId = trimmedBookStyle
   }
 
   const result = await apiRequest('/coloring-pages/generate-book', {
