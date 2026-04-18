@@ -56,11 +56,11 @@ const uploadFileToPresignedUrl = async (uploadUrl, file, contentType) => {
 }
 
 /**
- * Generate one or more coloring pages (up to 6).
+ * Generate one or more coloring pages (up to 10).
  * All generated pages can be assigned to the same folder via folderId.
  * For type 'photo': uploads image to S3 via presigned URL, then calls generate with S3 location (no file in generate request).
  *
- * @param {object} params - { userId, prompt, title, type, style, quality, dimensions, folderId, numImages (1-6), imageFile?: File, wordArtStyle?: string, titleForFrontCover?: string }
+ * @param {object} params - { userId, prompt, title, type, style, quality, dimensions, folderId, numImages (1-10), imageFile?: File, wordArtStyle?: string, titleForFrontCover?: string }
  * @returns {{ success: boolean, data?: { coloringPages: ColoringPage[], creditsRemaining?: number }, error?: string }}
  */
 export const generateColoringPage = async (params) => {
@@ -81,7 +81,7 @@ export const generateColoringPage = async (params) => {
     }
   }
 
-  const count = Math.min(6, Math.max(1, parseInt(numImages, 10) || 1))
+  const count = Math.min(10, Math.max(1, parseInt(numImages, 10) || 1))
   const qualityValue = quality || style || 'fast'
 
   let body
@@ -248,6 +248,122 @@ export const getColoringPage = async (userId, pageId) => {
 }
 
 /**
+ * Load status for many coloring page IDs in one request (max 50 per call; longer lists are chunked).
+ * POST /api/coloring-pages/batch-status
+ *
+ * @param {string} userId
+ * @param {string[]} ids
+ * @returns {{ success: boolean, data?: { pages: ColoringPage[], missingIds: string[] }, error?: string }}
+ */
+export const getColoringPagesBatchStatus = async (userId, ids) => {
+  const unique = [...new Set((ids || []).filter(Boolean))]
+  if (!unique.length) {
+    return {
+      success: false,
+      error: 'No page ids provided',
+      data: null,
+    }
+  }
+
+  const allRawPages = []
+  const allMissingIds = []
+
+  for (let i = 0; i < unique.length; i += 50) {
+    const chunk = unique.slice(i, i + 50)
+    const result = await apiRequest('/coloring-pages/batch-status', {
+      method: 'POST',
+      userId,
+      body: { ids: chunk },
+    })
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error || 'Failed to fetch batch status',
+        status: result.status,
+        data: null,
+      }
+    }
+    const pages = result.data?.pages ?? []
+    const missingIds = result.data?.missingIds ?? []
+    allRawPages.push(...pages)
+    allMissingIds.push(...missingIds)
+  }
+
+  return {
+    success: true,
+    data: {
+      pages: allRawPages.map((raw) => new ColoringPage(raw)),
+      missingIds: allMissingIds,
+    },
+  }
+}
+
+/**
+ * Poll batch status until every page is completed or failed, or until timeout.
+ * Uses POST /coloring-pages/batch-status instead of GET per id (avoids throttling).
+ *
+ * @param {string} userId
+ * @param {ColoringPage[]} initialPages - pages from generate (must include id); order preserved in result
+ * @param {{ intervalMs?: number, maxAttempts?: number, onUpdate?: (pages: ColoringPage[]) => void }} options
+ * @returns {Promise<ColoringPage[]>} same order as initialPages
+ */
+export const pollColoringPagesBatch = async (userId, initialPages, options = {}) => {
+  const { intervalMs = 2500, maxAttempts = 60, onUpdate } = options
+  const idOrder = initialPages.map((p) => p.id).filter(Boolean)
+  if (!idOrder.length) {
+    return []
+  }
+
+  /** @type {Map<string, ColoringPage>} */
+  const byId = new Map(
+    initialPages.filter((p) => p.id).map((p) => [p.id, new ColoringPage(p)])
+  )
+
+  const emit = () => {
+    const ordered = idOrder.map((id) => byId.get(id)).filter(Boolean)
+    onUpdate?.(ordered)
+  }
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const result = await getColoringPagesBatchStatus(userId, idOrder)
+    if (result.success && result.data) {
+      for (const page of result.data.pages) {
+        if (page?.id) {
+          byId.set(page.id, page)
+        }
+      }
+      emit()
+
+      const allTerminal = idOrder.every((id) => {
+        const p = byId.get(id)
+        return p && (p.status === 'completed' || p.status === 'failed')
+      })
+      if (allTerminal) {
+        return idOrder.map((id) => byId.get(id)).filter(Boolean)
+      }
+    }
+
+    await new Promise((r) => setTimeout(r, intervalMs))
+  }
+
+  for (const id of idOrder) {
+    const p = byId.get(id)
+    if (p && p.status !== 'completed' && p.status !== 'failed') {
+      byId.set(
+        id,
+        new ColoringPage({
+          ...Object.assign({}, p),
+          status: 'failed',
+          errorMessage: 'Generation timed out',
+        })
+      )
+    }
+  }
+  emit()
+  return idOrder.map((id) => byId.get(id)).filter(Boolean)
+}
+
+/**
  * Poll a single coloring page until status is 'completed' or 'failed'.
  * @param {string} userId
  * @param {string} pageId
@@ -255,23 +371,21 @@ export const getColoringPage = async (userId, pageId) => {
  * @returns {Promise<ColoringPage>} resolves with completed page; rejects on failed or timeout
  */
 export const pollColoringPageUntilComplete = async (userId, pageId, options = {}) => {
-  const { intervalMs = 2000, maxAttempts = 60 } = options
-  for (let i = 0; i < maxAttempts; i++) {
-    const { success, data: page } = await getColoringPage(userId, pageId)
-    if (!success || !page) {
-      throw new Error('Failed to fetch page status')
-    }
-    if (page.status === 'completed') {
-      return page
-    }
-    if (page.status === 'failed') {
-      const err = new Error(page.errorMessage || 'Generation failed')
-      err.page = page
-      throw err
-    }
-    await new Promise((r) => setTimeout(r, intervalMs))
+  const rows = await pollColoringPagesBatch(
+    userId,
+    [new ColoringPage({ id: pageId, status: 'processing' })],
+    options
+  )
+  const page = rows[0]
+  if (!page) {
+    throw new Error('Failed to fetch page status')
   }
-  throw new Error('Generation timed out')
+  if (page.status === 'failed') {
+    const err = new Error(page.errorMessage || 'Generation failed')
+    err.page = page
+    throw err
+  }
+  return page
 }
 
 /**

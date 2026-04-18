@@ -32,7 +32,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useUser } from '../hooks/useUser'
 import { useGenerateColoringPage, useGenerateColoringBook } from '../hooks/useColoringPages'
 import { useCreateScreenTour } from '../hooks/useOnboardingTour'
-import { pollColoringPageUntilComplete } from '../api/coloringPages'
+import { pollColoringPagesBatch } from '../api/coloringPages'
 import { improvePrompt } from '../api/prompts'
 import { ColoringPage } from '../models/coloringPage'
 import { trackCreationType } from '../utils/analytics'
@@ -40,6 +40,8 @@ import { downloadImagesAsPdf, printColoringPages } from '../utils/downloadImage'
 import { MIN_PAGES_FOR_PHYSICAL_PRINT } from '../constants/printOrder'
 
 const BOOK_GENERATION_MAX_PAGES = 50
+/** Non-book modes (text, word art, photo, front cover): max images per request. */
+const MULTI_IMAGE_GENERATION_MAX = 10
 
 const tabTypes = {
   text: 'text',
@@ -101,9 +103,17 @@ export const CreateColoringPage = () => {
   const [titleForFrontCover, setTitleForFrontCover] = useState('')
   const [bookTitle, setBookTitle] = useState('')
   const [bookCurrentPageIndex, setBookCurrentPageIndex] = useState(0)
+  const [multiImagePreviewIndex, setMultiImagePreviewIndex] = useState(0)
   const [pdfDownloading, setPdfDownloading] = useState(false)
   const [printLoading, setPrintLoading] = useState(false)
   const [bookFolderId, setBookFolderId] = useState(null)
+
+  useEffect(() => {
+    setMultiImagePreviewIndex((prev) => {
+      if (generatedPreviews.length === 0) return 0
+      return Math.min(prev, generatedPreviews.length - 1)
+    })
+  }, [generatedPreviews.length])
 
   const handleTabChange = (event, newValue) => {
     if (photoPreviewUrl) {
@@ -171,7 +181,7 @@ export const CreateColoringPage = () => {
       return
     }
 
-    const maxImages = activeTab === 'book' ? BOOK_GENERATION_MAX_PAGES : 6
+    const maxImages = activeTab === 'book' ? BOOK_GENERATION_MAX_PAGES : MULTI_IMAGE_GENERATION_MAX
     const count = Math.min(maxImages, Math.max(1, numImages))
     const creditsPerImage = quality === 'fast' ? 1 : 2
     const requiredCredits = count * creditsPerImage
@@ -237,6 +247,7 @@ export const CreateColoringPage = () => {
         if (previewPages.length) {
           setGeneratedPreviews(previewPages)
           setBookCurrentPageIndex(0)
+          setMultiImagePreviewIndex(0)
           setImageAspectRatio(null)
           if (activeTab === 'book') {
             const fid =
@@ -251,26 +262,13 @@ export const CreateColoringPage = () => {
             setPhotoPreviewUrl(null)
           }
           setPhotoFile(null)
-          // Poll each page until completed or failed (async generation)
-          previewPages.forEach((page) => {
-            if (!page.id) return
-            pollColoringPageUntilComplete(user.uid, page.id)
-              .then((completedPage) => {
-                setGeneratedPreviews((prev) =>
-                  prev.map((p) => (p.id === completedPage.id ? completedPage : p))
-                )
-              })
-              .catch((err) => {
-                const failedPage = new ColoringPage({
-                  ...Object.assign({}, page),
-                  status: 'failed',
-                  errorMessage: err.message || 'Generation failed',
-                })
-                setGeneratedPreviews((prev) =>
-                  prev.map((p) => (p.id === page.id ? failedPage : p))
-                )
-              })
-          })
+          // One batched poll for all pages (POST batch-status) — avoids per-id GET throttling
+          const toPoll = previewPages.filter((p) => p.id)
+          if (toPoll.length) {
+            void pollColoringPagesBatch(user.uid, toPoll, {
+              onUpdate: (pages) => setGeneratedPreviews(pages),
+            })
+          }
         }
       }
       if (!result.success) {
@@ -333,6 +331,19 @@ export const CreateColoringPage = () => {
   // }, [isBookTab, canDownloadPdf, hasPreviews, effectiveBookFolderId, bookReadyPagesCount])
   const bookProgressPercent =
     bookTotalPages > 0 ? Math.round((bookPagesComplete / bookTotalPages) * 100) : 0
+
+  /** Single large preview + slider whenever there is more than one result (grid only showed six at once). */
+  const nonBookMultiView = !isBookTab && generatedPreviews.length > 1
+  const nonBookMultiTotal = nonBookMultiView ? generatedPreviews.length : 0
+  const nonBookMultiComplete = nonBookMultiView
+    ? generatedPreviews.filter((p) => p.status === 'completed').length
+    : 0
+  const nonBookMultiStillLoading =
+    nonBookMultiView && nonBookMultiComplete < nonBookMultiTotal
+  const nonBookMultiProgressPercent =
+    nonBookMultiTotal > 0
+      ? Math.round((nonBookMultiComplete / nonBookMultiTotal) * 100)
+      : 0
 
   return (
     <MainLayout>
@@ -549,6 +560,192 @@ export const CreateColoringPage = () => {
                     )
                   })()}
                 </Box>
+                </Box>
+              ) : nonBookMultiView ? (
+                <Box
+                  sx={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'stretch',
+                    justifyContent: 'flex-start',
+                    p: 1,
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  {nonBookMultiStillLoading && (
+                    <Box
+                      sx={{
+                        flexShrink: 0,
+                        px: 1,
+                        pb: 1,
+                        borderBottom: '1px solid rgba(255,255,255,0.1)',
+                        mb: 1,
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: 'rgba(255,255,255,0.9)',
+                          fontWeight: 500,
+                          mb: 0.5,
+                          textAlign: 'center',
+                        }}
+                      >
+                        {nonBookMultiComplete} of {nonBookMultiTotal} images ready
+                      </Typography>
+                      <LinearProgress
+                        variant="determinate"
+                        value={nonBookMultiProgressPercent}
+                        sx={{ borderRadius: 1, height: 8 }}
+                        color="primary"
+                      />
+                    </Box>
+                  )}
+                  <Box
+                    sx={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minHeight: 0,
+                    }}
+                  >
+                    {(() => {
+                      const page =
+                        generatedPreviews[multiImagePreviewIndex] || generatedPreviews[0]
+                      if (!page) return null
+                      const url = page.imageUrl || page.thumbnailUrl
+                      const isProcessing =
+                        page.status === 'processing' || (!url && page.status !== 'failed')
+                      const isFailed = page.status === 'failed'
+                      if (isProcessing) {
+                        return (
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              gap: 2,
+                            }}
+                          >
+                            <CircularProgress
+                              size={48}
+                              thickness={4}
+                              sx={{ color: 'primary.main' }}
+                            />
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                color: 'rgba(255,255,255,0.9)',
+                                fontWeight: 500,
+                                textAlign: 'center',
+                              }}
+                            >
+                              Generating image {multiImagePreviewIndex + 1} of{' '}
+                              {generatedPreviews.length}…
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center' }}
+                            >
+                              Images appear as they finish. Use the slider below to switch views.
+                            </Typography>
+                          </Box>
+                        )
+                      }
+                      if (isFailed) {
+                        return (
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: 'error.light',
+                              textAlign: 'center',
+                              px: 1,
+                              fontSize: '0.875rem',
+                            }}
+                          >
+                            {page.errorMessage || 'Generation failed'}
+                          </Typography>
+                        )
+                      }
+                      if (!url) return null
+                      return (
+                        <Box
+                          component="img"
+                          src={url}
+                          alt={page.title || `Generated ${multiImagePreviewIndex + 1}`}
+                          onLoad={(e) => {
+                            if (imageAspectRatio == null) {
+                              const { naturalWidth, naturalHeight } = e.target
+                              if (naturalWidth && naturalHeight) {
+                                setImageAspectRatio(`${naturalWidth} / ${naturalHeight}`)
+                              }
+                            }
+                          }}
+                          sx={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            width: 'auto',
+                            height: 'auto',
+                            objectFit: 'contain',
+                            borderRadius: 1,
+                          }}
+                        />
+                      )
+                    })()}
+                  </Box>
+                  <Box
+                    sx={{
+                      flexShrink: 0,
+                      pt: 1,
+                      px: { xs: 0.5, sm: 1 },
+                      pb: 0.5,
+                      width: '100%',
+                      borderTop: '1px solid rgba(255,255,255,0.12)',
+                      bgcolor: 'rgba(0,0,0,0.35)',
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{ color: 'rgba(255,255,255,0.9)', mb: 0.5, textAlign: 'center' }}
+                    >
+                      Image {multiImagePreviewIndex + 1} of {generatedPreviews.length}
+                    </Typography>
+                    <Slider
+                      value={multiImagePreviewIndex + 1}
+                      onChange={(_, value) => {
+                        const idx = Array.isArray(value) ? value[0] : value
+                        setMultiImagePreviewIndex(
+                          Math.min(generatedPreviews.length - 1, Math.max(0, idx - 1))
+                        )
+                      }}
+                      min={1}
+                      max={generatedPreviews.length}
+                      step={1}
+                      sx={{
+                        color: 'primary.light',
+                        '& .MuiSlider-thumb': {
+                          width: 18,
+                          height: 18,
+                          backgroundColor: '#fff',
+                          border: '2px solid',
+                          borderColor: 'primary.light',
+                          '&:hover, &.Mui-focusVisible, &.Mui-active': {
+                            boxShadow: '0 0 0 8px rgba(129, 199, 132, 0.22)',
+                          },
+                        },
+                        '& .MuiSlider-track': {
+                          border: 'none',
+                        },
+                        '& .MuiSlider-rail': {
+                          opacity: 1,
+                          backgroundColor: 'rgba(255,255,255,0.28)',
+                        },
+                      }}
+                    />
+                  </Box>
                 </Box>
               ) : (
                 <Box
@@ -850,6 +1047,7 @@ export const CreateColoringPage = () => {
                     setGeneratedPreviews([])
                     setImageAspectRatio(null)
                     setBookCurrentPageIndex(0)
+                    setMultiImagePreviewIndex(0)
                     setBookFolderId(null)
                   }}
                   sx={{
@@ -1196,12 +1394,12 @@ export const CreateColoringPage = () => {
                     value={numImages}
                     onChange={(e) => {
                       const raw = parseInt(e.target.value, 10) || 1
-                      const max = isBookTab ? BOOK_GENERATION_MAX_PAGES : canGenerateMultiple ? 6 : 1
+                      const max = isBookTab ? BOOK_GENERATION_MAX_PAGES : canGenerateMultiple ? MULTI_IMAGE_GENERATION_MAX : 1
                       setNumImages(Math.min(max, Math.max(1, raw)))
                     }}
                     inputProps={{
                       min: 1,
-                      max: isBookTab ? BOOK_GENERATION_MAX_PAGES : canGenerateMultiple ? 6 : 1,
+                      max: isBookTab ? BOOK_GENERATION_MAX_PAGES : canGenerateMultiple ? MULTI_IMAGE_GENERATION_MAX : 1,
                     }}
                     sx={{ width: 80 }}
                     size="small"
@@ -1211,11 +1409,11 @@ export const CreateColoringPage = () => {
                     value={numImages}
                     onChange={(e, value) => {
                       const v = Array.isArray(value) ? value[0] : value
-                      const max = isBookTab ? BOOK_GENERATION_MAX_PAGES : canGenerateMultiple ? 6 : 1
+                      const max = isBookTab ? BOOK_GENERATION_MAX_PAGES : canGenerateMultiple ? MULTI_IMAGE_GENERATION_MAX : 1
                       setNumImages(Math.min(max, Math.max(1, v)))
                     }}
                     min={1}
-                    max={isBookTab ? BOOK_GENERATION_MAX_PAGES : canGenerateMultiple ? 6 : 1}
+                    max={isBookTab ? BOOK_GENERATION_MAX_PAGES : canGenerateMultiple ? MULTI_IMAGE_GENERATION_MAX : 1}
                     step={1}
                     sx={{ flex: 1 }}
                     disabled={(!isBookTab && !canGenerateMultiple) || (isBookTab && !canUseBook)}
