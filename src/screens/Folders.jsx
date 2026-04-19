@@ -157,12 +157,15 @@ export const Folders = () => {
                   height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
-                  backgroundColor: '#FCE4EC',
+                  backgroundColor: 'background.paper',
+                  border: 1,
+                  borderColor: 'divider',
                   transition: 'transform 0.2s, box-shadow 0.2s',
                   cursor: 'pointer',
                   '&:hover': {
                     transform: 'translateY(-4px)',
-                    boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+                    boxShadow: (theme) =>
+                      theme.palette.mode === 'dark' ? theme.shadows[8] : '0 8px 16px rgba(0,0,0,0.1)',
                   },
                 }}
               >
@@ -193,10 +196,10 @@ export const Folders = () => {
                   )}
                 </CardMedia>
                 <CardContent sx={{ flexGrow: 1, pt: 1.5, pb: 2, '&:last-child': { pb: 2 } }}>
-                  <Typography variant="h6" component="h2" gutterBottom sx={{ fontWeight: 600, color: '#C2185B' }}>
+                  <Typography variant="h6" component="h2" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
                     {folder?.name || 'Untitled Folder'}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     {pageLabel(folder?.coloringPageCount ?? 0)}
                   </Typography>
                   {folder?.isPinned && (

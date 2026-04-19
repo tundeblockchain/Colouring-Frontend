@@ -350,11 +350,12 @@ export const getColoringPagesBatchStatus = async (userId, ids) => {
  *
  * @param {string} userId
  * @param {ColoringPage[]} initialPages - pages from generate (must include id); order preserved in result
- * @param {{ intervalMs?: number, maxAttempts?: number, onUpdate?: (pages: ColoringPage[]) => void }} options
+ * @param {{ intervalMs?: number, maxAttempts?: number, onUpdate?: (pages: ColoringPage[]) => void, onDone?: () => void, signal?: AbortSignal }} options
  * @returns {Promise<ColoringPage[]>} same order as initialPages
  */
 export const pollColoringPagesBatch = async (userId, initialPages, options = {}) => {
-  const { intervalMs = 2500, maxAttempts = 60, onUpdate } = options
+  /** Default ~15m window: 180 attempts × 5s between polls */
+  const { intervalMs = 5000, maxAttempts = 180, onUpdate, onDone, signal } = options
   const idOrder = initialPages.map((p) => p.id).filter(Boolean)
   if (!idOrder.length) {
     return []
@@ -366,11 +367,15 @@ export const pollColoringPagesBatch = async (userId, initialPages, options = {})
   )
 
   const emit = () => {
+    if (signal?.aborted) return
     const ordered = idOrder.map((id) => byId.get(id)).filter(Boolean)
     onUpdate?.(ordered)
   }
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (signal?.aborted) {
+      return idOrder.map((id) => byId.get(id)).filter(Boolean)
+    }
     const result = await getColoringPagesBatchStatus(userId, idOrder)
     if (result.success && result.data) {
       for (const page of result.data.pages) {
@@ -385,6 +390,9 @@ export const pollColoringPagesBatch = async (userId, initialPages, options = {})
         return p && (p.status === 'completed' || p.status === 'failed')
       })
       if (allTerminal) {
+        if (!signal?.aborted) {
+          onDone?.()
+        }
         return idOrder.map((id) => byId.get(id)).filter(Boolean)
       }
     }
@@ -406,6 +414,9 @@ export const pollColoringPagesBatch = async (userId, initialPages, options = {})
     }
   }
   emit()
+  if (!signal?.aborted) {
+    onDone?.()
+  }
   return idOrder.map((id) => byId.get(id)).filter(Boolean)
 }
 
@@ -413,7 +424,7 @@ export const pollColoringPagesBatch = async (userId, initialPages, options = {})
  * Poll a single coloring page until status is 'completed' or 'failed'.
  * @param {string} userId
  * @param {string} pageId
- * @param {{ intervalMs?: number, maxAttempts?: number }} options
+ * @param {{ intervalMs?: number, maxAttempts?: number }} options — defaults match batch poll (~15m, 5s interval)
  * @returns {Promise<ColoringPage>} resolves with completed page; rejects on failed or timeout
  */
 export const pollColoringPageUntilComplete = async (userId, pageId, options = {}) => {

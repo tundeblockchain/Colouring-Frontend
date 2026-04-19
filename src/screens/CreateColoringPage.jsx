@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Box,
@@ -37,12 +37,26 @@ import { pollColoringPagesBatch } from '../api/coloringPages'
 import { improvePrompt } from '../api/prompts'
 import { ColoringPage } from '../models/coloringPage'
 import { trackCreationType } from '../utils/analytics'
+import {
+  persistPendingCreatePoll,
+  clearPendingCreatePoll,
+  readPendingCreatePoll,
+  anyPagePendingPoll,
+} from '../utils/createPendingPollStorage'
 import { downloadImagesAsPdf, printColoringPages } from '../utils/downloadImage'
 import { MIN_PAGES_FOR_PHYSICAL_PRINT } from '../constants/printOrder'
 
 const BOOK_GENERATION_MAX_PAGES = 50
-/** Non-book modes (text, word art, photo, front cover): max images per request. */
+/** Describe-from-text tab only: max images per request. */
+const TEXT_TAB_IMAGE_MAX = 10
+/** Non-book modes except text (word art, photo, front cover): max images per request. */
 const MULTI_IMAGE_GENERATION_MAX = 10
+
+function getImageCountMaxForTab(tab) {
+  if (tab === 'book') return BOOK_GENERATION_MAX_PAGES
+  if (tab === 'text') return TEXT_TAB_IMAGE_MAX
+  return MULTI_IMAGE_GENERATION_MAX
+}
 
 const tabTypes = {
   text: 'text',
@@ -111,6 +125,47 @@ export const CreateColoringPage = () => {
   const [printLoading, setPrintLoading] = useState(false)
   const [bookFolderId, setBookFolderId] = useState(null)
   const [promptStyleSelection, setPromptStyleSelection] = useState(STANDARD_PROMPT_STYLE_ID)
+  const pollAbortRef = useRef(null)
+
+  const startCreatePagePoll = useCallback((uid, initialPages) => {
+    pollAbortRef.current?.abort()
+    const ac = new AbortController()
+    pollAbortRef.current = ac
+    const folderFromPages = initialPages.find((p) => p.folderId)?.folderId ?? null
+    persistPendingCreatePoll(uid, initialPages, { bookFolderId: folderFromPages })
+    void pollColoringPagesBatch(uid, initialPages, {
+      signal: ac.signal,
+      onUpdate: (updated) => {
+        setGeneratedPreviews(updated)
+        const fid = updated.find((p) => p.folderId)?.folderId ?? folderFromPages
+        persistPendingCreatePoll(uid, updated, { bookFolderId: fid })
+      },
+      onDone: () => {
+        if (!ac.signal.aborted) {
+          clearPendingCreatePoll(uid)
+        }
+      },
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!user?.uid) return undefined
+    const saved = readPendingCreatePoll(user.uid)
+    if (!saved?.pages?.length) return undefined
+    const { pages, bookFolderId } = saved
+    if (!anyPagePendingPoll(pages)) {
+      setGeneratedPreviews(pages)
+      if (bookFolderId) setBookFolderId(bookFolderId)
+      clearPendingCreatePoll(user.uid)
+      return undefined
+    }
+    setGeneratedPreviews(pages)
+    if (bookFolderId) setBookFolderId(bookFolderId)
+    startCreatePagePoll(user.uid, pages)
+    return () => {
+      pollAbortRef.current?.abort()
+    }
+  }, [user?.uid, startCreatePagePoll])
 
   useEffect(() => {
     setMultiImagePreviewIndex((prev) => {
@@ -124,6 +179,11 @@ export const CreateColoringPage = () => {
       setPromptStyleSelection(STANDARD_PROMPT_STYLE_ID)
     }
   }, [quality])
+
+  useEffect(() => {
+    const cap = getImageCountMaxForTab(activeTab)
+    setNumImages((prev) => Math.min(prev, cap))
+  }, [activeTab])
 
   const handleTabChange = (event, newValue) => {
     if (photoPreviewUrl) {
@@ -191,7 +251,7 @@ export const CreateColoringPage = () => {
       return
     }
 
-    const maxImages = activeTab === 'book' ? BOOK_GENERATION_MAX_PAGES : MULTI_IMAGE_GENERATION_MAX
+    const maxImages = getImageCountMaxForTab(activeTab)
     const count = Math.min(maxImages, Math.max(1, numImages))
     const creditsPerImage = quality === 'fast' ? 1 : 2
     const requiredCredits = count * creditsPerImage
@@ -281,12 +341,9 @@ export const CreateColoringPage = () => {
             setPhotoPreviewUrl(null)
           }
           setPhotoFile(null)
-          // One batched poll for all pages (POST batch-status) — avoids per-id GET throttling
-          const toPoll = previewPages.filter((p) => p.id)
-          if (toPoll.length) {
-            void pollColoringPagesBatch(user.uid, toPoll, {
-              onUpdate: (pages) => setGeneratedPreviews(pages),
-            })
+          // Batched poll + sessionStorage so refresh can resume (POST batch-status)
+          if (previewPages.some((p) => p.id)) {
+            startCreatePagePoll(user.uid, previewPages)
           }
         }
       }
@@ -319,6 +376,7 @@ export const CreateColoringPage = () => {
   const aspectRatioMap = { '1:1': '1', '2:3': '2/3', '3:2': '3/2' }
   const hasPreviews = generatedPreviews.length > 0
   const isBookTab = activeTab === 'book'
+  const nonBookImageMax = getImageCountMaxForTab(activeTab)
   const isGenerating =
     activeTab === 'book' ? generateBookMutation.isPending : generateMutation.isPending
 
@@ -1068,6 +1126,8 @@ export const CreateColoringPage = () => {
                     setBookCurrentPageIndex(0)
                     setMultiImagePreviewIndex(0)
                     setBookFolderId(null)
+                    if (user?.uid) clearPendingCreatePoll(user.uid)
+                    pollAbortRef.current?.abort()
                   }}
                   sx={{
                     flex: 1,
@@ -1428,12 +1488,12 @@ export const CreateColoringPage = () => {
                     value={numImages}
                     onChange={(e) => {
                       const raw = parseInt(e.target.value, 10) || 1
-                      const max = isBookTab ? BOOK_GENERATION_MAX_PAGES : canGenerateMultiple ? MULTI_IMAGE_GENERATION_MAX : 1
+                      const max = isBookTab ? BOOK_GENERATION_MAX_PAGES : canGenerateMultiple ? nonBookImageMax : 1
                       setNumImages(Math.min(max, Math.max(1, raw)))
                     }}
                     inputProps={{
                       min: 1,
-                      max: isBookTab ? BOOK_GENERATION_MAX_PAGES : canGenerateMultiple ? MULTI_IMAGE_GENERATION_MAX : 1,
+                      max: isBookTab ? BOOK_GENERATION_MAX_PAGES : canGenerateMultiple ? nonBookImageMax : 1,
                     }}
                     sx={{ width: 80 }}
                     size="small"
@@ -1443,11 +1503,11 @@ export const CreateColoringPage = () => {
                     value={numImages}
                     onChange={(e, value) => {
                       const v = Array.isArray(value) ? value[0] : value
-                      const max = isBookTab ? BOOK_GENERATION_MAX_PAGES : canGenerateMultiple ? MULTI_IMAGE_GENERATION_MAX : 1
+                      const max = isBookTab ? BOOK_GENERATION_MAX_PAGES : canGenerateMultiple ? nonBookImageMax : 1
                       setNumImages(Math.min(max, Math.max(1, v)))
                     }}
                     min={1}
-                    max={isBookTab ? BOOK_GENERATION_MAX_PAGES : canGenerateMultiple ? MULTI_IMAGE_GENERATION_MAX : 1}
+                    max={isBookTab ? BOOK_GENERATION_MAX_PAGES : canGenerateMultiple ? nonBookImageMax : 1}
                     step={1}
                     sx={{ flex: 1 }}
                     disabled={(!isBookTab && !canGenerateMultiple) || (isBookTab && !canUseBook)}
