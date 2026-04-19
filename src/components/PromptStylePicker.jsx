@@ -59,12 +59,12 @@ export const PromptStylePicker = ({
   disabled,
 }) => {
   const options = useMemo(() => {
-    const sorted = [...presets].sort(
-      (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
+    const sorted = [...presets].sort((a, b) =>
+      String(a.id).localeCompare(String(b.id), undefined, { numeric: true, sensitivity: 'base' }),
     )
     return [
-      { id: STANDARD_ID, name: 'Standard', sortOrder: -1 },
-      ...sorted.map((p) => ({ id: p.id, name: p.name || p.id, sortOrder: p.sortOrder })),
+      { id: STANDARD_ID, name: 'Standard' },
+      ...sorted.map((p) => ({ id: p.id, name: p.name || p.id })),
     ]
   }, [presets])
 

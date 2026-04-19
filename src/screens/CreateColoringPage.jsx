@@ -119,6 +119,12 @@ export const CreateColoringPage = () => {
     })
   }, [generatedPreviews.length])
 
+  useEffect(() => {
+    if (quality === 'fast') {
+      setPromptStyleSelection(STANDARD_PROMPT_STYLE_ID)
+    }
+  }, [quality])
+
   const handleTabChange = (event, newValue) => {
     if (photoPreviewUrl) {
       URL.revokeObjectURL(photoPreviewUrl)
@@ -219,7 +225,8 @@ export const CreateColoringPage = () => {
           quality,
           dimensions,
           numPages: count,
-          ...(promptStyleSelection !== STANDARD_PROMPT_STYLE_ID
+          ...(quality === 'standard' &&
+          promptStyleSelection !== STANDARD_PROMPT_STYLE_ID
             ? { promptStyleId: promptStyleSelection }
             : {}),
         })
@@ -244,7 +251,9 @@ export const CreateColoringPage = () => {
           ...(activeTab === 'frontCover' && titleForFrontCover?.trim()
             ? { titleForFrontCover: titleForFrontCover.trim() }
             : {}),
-          ...(activeTab !== 'photo' && promptStyleSelection !== STANDARD_PROMPT_STYLE_ID
+          ...(activeTab !== 'photo' &&
+          quality === 'standard' &&
+          promptStyleSelection !== STANDARD_PROMPT_STYLE_ID
             ? { promptStyleId: promptStyleSelection }
             : {}),
         })
@@ -1317,21 +1326,6 @@ export const CreateColoringPage = () => {
           )}
 
           {activeTab !== 'photo' && (
-            <Box sx={{ marginBottom: 3 }}>
-              <PromptStylePicker
-                value={promptStyleSelection}
-                onChange={setPromptStyleSelection}
-                presets={promptStylePresets}
-                loading={promptStylePresetsLoading}
-                disabled={
-                  (activeTab === 'frontCover' && !canUseFrontCover) ||
-                  (activeTab === 'book' && !canUseBook)
-                }
-              />
-            </Box>
-          )}
-
-          {activeTab !== 'photo' && (
           <Accordion>
             <AccordionSummary expandIcon={<ExpandMore />}>
               <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -1386,6 +1380,21 @@ export const CreateColoringPage = () => {
                   <option value="standard">Standard – balanced quality and speed</option>
                 </TextField>
               </Box>
+
+              {activeTab !== 'photo' && quality === 'standard' && (
+                <Box sx={{ marginBottom: 3 }}>
+                  <PromptStylePicker
+                    value={promptStyleSelection}
+                    onChange={setPromptStyleSelection}
+                    presets={promptStylePresets}
+                    loading={promptStylePresetsLoading}
+                    disabled={
+                      (activeTab === 'frontCover' && !canUseFrontCover) ||
+                      (activeTab === 'book' && !canUseBook)
+                    }
+                  />
+                </Box>
+              )}
 
               <Box sx={{ marginBottom: 3 }}>
                 <FormControl component="fieldset">
