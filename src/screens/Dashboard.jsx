@@ -33,7 +33,7 @@ const featureCards = [
     id: 3,
     title: 'Book',
     description: 'Create a full coloring book with multiple unique pages.',
-    image: '/book.png',
+    image: '/book.jpg',
     path: '/create/book',
     premium: true,
     imageCover: true,
