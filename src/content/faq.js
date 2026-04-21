@@ -1,19 +1,19 @@
 export const faqItems = [
   {
     q: 'What is Color Charm?',
-    a: 'Color Charm is an AI-powered colouring page generator. Create printable colouring pages from text prompts, turn photos into line art, or design custom word art — all in seconds.',
+    a: 'Color Charm helps you make printable colouring pages in moments. Describe a scene in words, turn a photo into line art, or design custom word art — then print and enjoy.',
   },
   {
     q: 'How do I make my own colouring page?',
-    a: "Sign up for free, then choose how you want to create: type a description (e.g. 'dragon in a forest'), upload a photo, or create word art. Our AI generates a printable page you can download and colour.",
+    a: "Sign up for free, then choose how you want to create: type a description (e.g. 'dragon in a forest'), upload a photo, or create word art. You'll get a printable page you can download and colour.",
   },
   {
     q: 'Can I use the images I create to make colouring books to sell?',
     a: 'Yes. Our Artist and Business plans are designed for creators who want to sell their work. Check the plan details and terms for commercial use.',
   },
   {
-    q: 'How does the AI generate colouring pages?',
-    a: 'Our AI turns your ideas or photos into clean black-and-white line art suitable for colouring. You get full control over style, and you can adjust contrast and brightness before downloading.',
+    q: 'How are colouring pages created from my prompt or photo?',
+    a: 'Your ideas or photos are turned into clean black-and-white line art suitable for colouring. You get full control over style, and you can adjust contrast and brightness before downloading.',
   },
   {
     q: 'Is Color Charm free to use?',

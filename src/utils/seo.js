@@ -5,7 +5,7 @@
 
 const SITE_NAME = 'Color Charm'
 const DEFAULT_DESCRIPTION =
-  'Create and print AI-generated colouring pages from text, photos, and word art. Free to try – perfect for kids, teachers, and crafters.'
+  'Create and print colouring pages from text, photos, and word art. Free to try – perfect for kids, teachers, and crafters.'
 
 export function getBaseUrl() {
   if (typeof window !== 'undefined') return window.location.origin
@@ -35,12 +35,12 @@ export function getDefaultOgImage() {
  */
 export function getSeoForPath(pathname) {
   const path = pathname.replace(/\/$/, '') || '/'
-  const defaultMeta = { title: `${SITE_NAME} – AI Coloring Pages`, description: DEFAULT_DESCRIPTION }
+  const defaultMeta = { title: `${SITE_NAME} – Printable Coloring Pages`, description: DEFAULT_DESCRIPTION }
 
   // Static routes
   const staticRoutes = {
     '/': {
-      title: `${SITE_NAME} – AI Coloring Pages | Create & Print Free`,
+      title: `${SITE_NAME} – Printable Coloring Pages | Create & Print Free`,
       description: DEFAULT_DESCRIPTION,
     },
     '/login': {

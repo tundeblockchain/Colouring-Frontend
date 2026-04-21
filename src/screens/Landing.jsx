@@ -61,19 +61,19 @@ const ctaGradient = 'linear-gradient(90deg, #42A5F5 0%, #66BB6A 100%)'
 
 const features = [
   {
-    title: 'Create AI colouring pages in seconds',
+    title: 'Create colouring pages from ideas in seconds',
     description:
       "Type any idea — 'unicorn in a castle', 'dinosaurs on the moon', 'my cat as a superhero' — and get a printable colouring page in seconds. Perfect for kids, teachers, and anyone who loves to colour.",
     cta: 'Try it now',
     path: '/create/text',
-    image: '/text-prompts.png',
+    image: '/text-prompts.jpg',
     icon: AutoAwesome,
     imageSide: 'right',
   },
   {
     title: 'Turn photos into colouring pages',
     description:
-      'Upload a photo and our AI removes the background, cleans the details, and returns crisp line art ready to print. Works with any JPG or PNG — turn family photos, pets, or favourite moments into one-of-a-kind colouring pages.',
+      'Upload a photo and we strip away the background, simplify busy detail, and give you crisp line art ready to print. Works with any JPG or PNG — turn family photos, pets, or favourite moments into one-of-a-kind colouring pages.',
     cta: 'Convert a photo',
     path: '/create/photo',
     image: '/photos.png',
@@ -86,7 +86,7 @@ const features = [
       'Create custom word art with names, quotes, numbers, or any text. Great for banners, bulletin boards, gifts, and classroom projects. Choose from bubble letters, script, and more.',
     cta: 'Create word art',
     path: '/create/word-art',
-    image: '/word-art.png',
+    image: '/word-art.jpg',
     icon: TextFields,
     imageSide: 'right',
   },
@@ -175,7 +175,7 @@ const footerColumns = [
   {
     title: 'Product',
     links: [
-      { label: 'AI colouring page generator', to: '/create/text' },
+      { label: 'Colouring pages from a written idea', to: '/create/text' },
       { label: 'Convert photos to colouring pages', to: '/create/photo' },
       { label: 'Word art generator', to: '/create/word-art' },
       { label: 'Pricing', to: '/pricing' },
@@ -400,13 +400,13 @@ export const Landing = () => {
           >
             <Box
               component="img"
-              src="/text-prompts.png"
+              src="/text-prompts.jpg"
               alt="Text prompt example"
               sx={{ width: '100%', display: 'block', backgroundColor: 'background.paper' }}
             />
             <Box
               component="img"
-              src="/word-art.png"
+              src="/word-art.jpg"
               alt="Word art example"
               sx={{ width: '100%', display: 'block', backgroundColor: 'background.paper' }}
             />
@@ -697,7 +697,7 @@ export const Landing = () => {
                 </Typography>
               </Box>
               <Typography variant="body2" color="text.secondary">
-                AI colouring page generator for everyone.
+                Printable colouring pages for everyone.
               </Typography>
             </Grid>
             {footerColumns.map((col) => (

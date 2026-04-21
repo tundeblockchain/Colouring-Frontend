@@ -19,14 +19,14 @@ const featureCards = [
     id: 1,
     title: 'Text prompts',
     description: 'Create coloring pages with text prompts',
-    image: '/text-prompts.png',
+    image: '/text-prompts.jpg',
     path: '/create/text',
   },
   {
     id: 2,
     title: 'Word Art',
     description: 'Create coloring pages with words, names, and numbers!',
-    image: '/word-art.png',
+    image: '/word-art.jpg',
     path: '/create/word-art',
   },
   {
