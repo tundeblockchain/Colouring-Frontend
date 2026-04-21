@@ -2,6 +2,21 @@ import { useQuery } from '@tanstack/react-query'
 import { getCurrentUserIdToken } from '../api/auth'
 import { getPrintOrder, listPrintOrders } from '../api/printOrders'
 
+function normalizePrintOrder(rawOrder) {
+  if (!rawOrder || typeof rawOrder !== 'object') return rawOrder
+  return {
+    ...rawOrder,
+    tracking:
+      rawOrder.tracking && typeof rawOrder.tracking === 'object'
+        ? {
+            trackingUrls: rawOrder.tracking.trackingUrls,
+            carrierName: rawOrder.tracking.carrierName,
+            trackingId: rawOrder.tracking.trackingId,
+          }
+        : null,
+  }
+}
+
 export const usePrintOrdersList = (userId) => {
   return useQuery({
     queryKey: ['printOrders', userId],
@@ -12,7 +27,8 @@ export const usePrintOrdersList = (userId) => {
       console.log('[PrintOrders] listPrintOrders response:', res)
       console.log('[PrintOrders] listPrintOrders orders payload:', res?.data?.orders ?? res?.data)
       if (!res.success) throw new Error(res.error || 'Failed to load orders')
-      return res.data?.orders ?? []
+      const orders = res.data?.orders ?? []
+      return Array.isArray(orders) ? orders.map(normalizePrintOrder) : []
     },
     enabled: !!userId,
   })
@@ -28,7 +44,7 @@ export const usePrintOrderDetail = (userId, orderId) => {
       console.log('[PrintOrders] getPrintOrder response:', res)
       console.log('[PrintOrders] getPrintOrder order payload:', res?.data?.order ?? res?.data)
       if (!res.success) throw new Error(res.error || 'Failed to load order')
-      return res.data?.order ?? res.data
+      return normalizePrintOrder(res.data?.order ?? res.data)
     },
     enabled: !!userId && !!orderId,
   })

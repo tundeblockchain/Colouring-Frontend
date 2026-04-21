@@ -44,7 +44,6 @@ import {
   anyPagePendingPoll,
 } from '../utils/createPendingPollStorage'
 import { downloadImagesAsPdf, printColoringPages } from '../utils/downloadImage'
-import { MIN_PAGES_FOR_PHYSICAL_PRINT } from '../constants/printOrder'
 
 const BOOK_GENERATION_MAX_PAGES = 50
 /** Describe-from-text tab only: max images per request. */
@@ -1478,8 +1477,7 @@ export const CreateColoringPage = () => {
                 </Typography>
                 {isBookTab && (
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                    Generate up to {BOOK_GENERATION_MAX_PAGES} pages. Physical printing needs at least{' '}
-                    {MIN_PAGES_FOR_PHYSICAL_PRINT} finished pages.
+                    Generate up to {BOOK_GENERATION_MAX_PAGES} pages.
                   </Typography>
                 )}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, marginBottom: 2 }}>
