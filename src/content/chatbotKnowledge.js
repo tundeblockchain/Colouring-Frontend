@@ -80,7 +80,7 @@ Photo conversion is a premium feature; upgrade in **Profile** or **Choose plan**
     keywords: ['bill', 'billing', 'subscription', 'subscribe', 'plan', 'upgrade', 'downgrade', 'cancel subscription', 'payment', 'pay', 'price', 'cost', 'refund'],
     answer: `**Billing & subscriptions**
 
-• **Plans:** Free trial includes limited credits. Paid plans (Starter, Hobby, Artist, Business) give more credits and features (e.g. photo, front cover, PDF export).  
+• **Plans:** New accounts on the free trial start with 20 credits. Paid plans (Starter, Hobby, Artist, Business) give more credits and features (e.g. photo, front cover, PDF export).  
 • **Upgrade:** Go to **Profile** or **Choose plan** to see plans and upgrade.  
 • **Add credits:** You can add one-time credit packs from **Profile** → **Add credits**.  
 • **Credits:** Standard quality = 2 credits per image; Fast quality = 1 credit per image.  
@@ -93,6 +93,7 @@ Photo conversion is a premium feature; upgrade in **Profile** or **Choose plan**
 
 • **Standard quality:** 2 credits per image.  
 • **Fast quality:** 1 credit per image.  
+• **Free plan:** New accounts start with **20 credits**.  
 • Your **credits remaining** and plan are shown in the header. Click the credits chip for details (plan credits, used, next refill).  
 • To get more: upgrade your plan (Profile or Choose plan) or buy a one-time credit pack (Add credits).`,
   },

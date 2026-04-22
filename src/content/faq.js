@@ -17,7 +17,7 @@ export const faqItems = [
   },
   {
     q: 'Is Color Charm free to use?',
-    a: 'You can start with a free trial that includes credits to try our text and word art features. When you need more, choose a plan that fits how much you create.',
+    a: 'You can start with a free trial that includes 20 credits to try our text and word art features. When you need more, choose a plan that fits how much you create.',
   },
   {
     q: 'How many credits does each image use?',

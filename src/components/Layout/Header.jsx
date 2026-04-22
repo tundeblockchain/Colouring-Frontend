@@ -31,7 +31,7 @@ import { useUser } from '../../hooks/useUser'
 import { useColoringPages } from '../../hooks/useColoringPages'
 
 const PLAN_CREDITS_BY_PLAN = {
-  free: 12,
+  free: 20,
   starter: 250,
   hobby: 500,
   artist: 1000,
