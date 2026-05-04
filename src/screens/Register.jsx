@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom'
 import {
   Box,
   Container,
@@ -16,11 +16,16 @@ import { Google } from '@mui/icons-material'
 import { registerUser, signInWithGoogle } from '../api/auth'
 import { getUserProfile, registerUser as registerUserAPI } from '../api/user'
 import { trackSignUp, trackLogin } from '../utils/analytics'
+import { resolvePostAuthRedirect } from '../utils/safeReturnPath'
 
 export const Register = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const from = location.state?.from || '/dashboard'
+  const [searchParams] = useSearchParams()
+  const postAuthPath = resolvePostAuthRedirect({
+    stateFrom: location.state?.from,
+    nextQuery: searchParams.get('next'),
+  })
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -76,7 +81,7 @@ export const Register = () => {
 
       // Success - navigate to dashboard or intended page from landing
       trackSignUp('email')
-      navigate(from)
+      navigate(postAuthPath)
     } catch (error) {
       setError(error.message || 'Failed to register')
     } finally {
@@ -134,7 +139,7 @@ export const Register = () => {
       }
 
       // Success - navigate to dashboard or intended page from landing
-      navigate(from)
+      navigate(postAuthPath)
     } catch (error) {
       setError(error.message || 'Failed to sign in with Google')
     } finally {
@@ -244,7 +249,8 @@ export const Register = () => {
               <Typography variant="body2" color="text.secondary">
                 Already have an account?{' '}
                 <Link
-                  to="/login"
+                  to={{ pathname: '/login', search: location.search }}
+                  state={location.state}
                   style={{ color: '#64B5F6', textDecoration: 'none' }}
                 >
                   Sign in

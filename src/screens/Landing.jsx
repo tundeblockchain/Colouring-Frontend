@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { setPendingLandingCreate } from '../utils/pendingLandingCreate'
+import { trackLandingTryCreateClick } from '../utils/analytics'
 import {
   Box,
   Typography,
@@ -14,6 +16,7 @@ import {
   CardContent,
   Grid,
   CircularProgress,
+  TextField,
   List,
   ListItem,
   ListItemIcon,
@@ -204,6 +207,7 @@ export const Landing = () => {
   const isDark = theme.palette.mode === 'dark'
   const isSmall = useMediaQuery(theme.breakpoints.down('md'))
   const navigate = useNavigate()
+  const [heroPrompt, setHeroPrompt] = useState('')
   const [billingInterval, setBillingInterval] = useState('month')
   const { data: plansData, isLoading: plansLoading } = useSubscriptionPlans()
   const apiPlans = plansData?.plans ?? []
@@ -222,6 +226,16 @@ export const Landing = () => {
 
   const handleCta = (path) => {
     navigate('/register', { state: { from: path } })
+  }
+
+  const goToAuthForTextCreate = (path) => {
+    const hasPrompt = Boolean(heroPrompt.trim())
+    trackLandingTryCreateClick({
+      destination: path === '/login' ? 'login' : 'register',
+      has_prompt: hasPrompt,
+    })
+    setPendingLandingCreate({ prompt: heroPrompt, quality: 'fast', numImages: 1 })
+    navigate(path, { state: { from: '/create/text' } })
   }
 
   return (
@@ -330,15 +344,32 @@ export const Landing = () => {
             >
               Your very own printable coloring pages for the joy of creating
             </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 3, maxWidth: 560, mx: 'auto' }}>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 2, maxWidth: 560, mx: 'auto' }}>
               {SITE_NAME} is for kids, grown-ups, and anyone who loves putting pencil to paper — turn gentle ideas into
               pages you can print and colour whenever you like.
             </Typography>
+            <Box sx={{ maxWidth: 520, mx: 'auto', mb: 2, textAlign: 'left' }}>
+              <TextField
+                fullWidth
+                multiline
+                minRows={2}
+                maxRows={5}
+                placeholder='Try an idea — e.g. "a cheerful otter in a raincoat"'
+                value={heroPrompt}
+                onChange={(e) => setHeroPrompt(e.target.value)}
+                variant="outlined"
+                InputProps={{
+                  sx: {
+                    backgroundColor: 'background.paper',
+                    borderRadius: 2,
+                  },
+                }}
+              />
+            </Box>
             <Button
-              component={Link}
-              to="/register"
               variant="contained"
               size="large"
+              onClick={() => goToAuthForTextCreate('/register')}
               sx={{
                 py: 1.5,
                 px: 4,
@@ -349,10 +380,29 @@ export const Landing = () => {
                 '&:hover': { opacity: 0.9, background: ctaGradient },
               }}
             >
-              Start for free
+              {heroPrompt.trim() ? 'Continue with my idea — free' : 'Start creating — free'}
             </Button>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
               No credit card. Just creativity.
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Already have an account?{' '}
+              <Box
+                component="button"
+                type="button"
+                onClick={() => goToAuthForTextCreate('/login')}
+                sx={{
+                  border: 'none',
+                  background: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  color: 'primary.main',
+                  font: 'inherit',
+                  textDecoration: 'underline',
+                }}
+              >
+                Sign in and open Create
+              </Box>
             </Typography>
             <Box
               sx={{

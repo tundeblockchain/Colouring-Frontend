@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom'
 import {
   Box,
   Container,
@@ -16,9 +16,16 @@ import { Google } from '@mui/icons-material'
 import { loginUser, signInWithGoogle } from '../api/auth'
 import { getUserProfile, registerUser as registerUserAPI } from '../api/user'
 import { trackLogin } from '../utils/analytics'
+import { resolvePostAuthRedirect } from '../utils/safeReturnPath'
 
 export const Login = () => {
   const navigate = useNavigate()
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
+  const postAuthPath = resolvePostAuthRedirect({
+    stateFrom: location.state?.from,
+    nextQuery: searchParams.get('next'),
+  })
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -33,7 +40,7 @@ export const Login = () => {
 
     if (result.success) {
       trackLogin('email')
-      navigate('/dashboard')
+      navigate(postAuthPath)
     } else {
       setError(result.error || 'Failed to login')
     }
@@ -86,9 +93,9 @@ export const Login = () => {
         return
       }
 
-      // Success - navigate to dashboard
+      // Success - navigate to dashboard or return path
       trackLogin('google')
-      navigate('/dashboard')
+      navigate(postAuthPath)
     } catch (error) {
       setError(error.message || 'Failed to sign in with Google')
     } finally {
@@ -187,7 +194,8 @@ export const Login = () => {
               <Typography variant="body2" color="text.secondary">
                 Don't have an account?{' '}
                 <Link
-                  to="/register"
+                  to={{ pathname: '/register', search: location.search }}
+                  state={location.state}
                   style={{ color: '#64B5F6', textDecoration: 'none' }}
                 >
                   Sign up

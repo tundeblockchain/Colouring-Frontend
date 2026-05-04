@@ -194,6 +194,17 @@ export function trackCreationType(type) {
   event('create_coloring_page', { creation_type: type })
 }
 
+/**
+ * Landing hero: user continued toward Create (text) via register or login.
+ * @param {{ destination: 'register' | 'login', has_prompt: boolean }} params
+ */
+export function trackLandingTryCreateClick({ destination, has_prompt }) {
+  event('landing_try_create_click', {
+    destination,
+    has_prompt: Boolean(has_prompt),
+  })
+}
+
 /** User viewed the pricing screen. */
 export function trackViewPricing() {
   event('view_pricing', {})

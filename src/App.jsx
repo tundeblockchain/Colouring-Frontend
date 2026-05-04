@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { getSafeInternalPath } from './utils/safeReturnPath'
 import { useAuth } from './hooks/useAuth'
 import { CircularProgress, Box } from '@mui/material'
 import { pageview } from './utils/analytics'
@@ -44,6 +45,7 @@ const PageViewTracker = () => {
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return (
@@ -60,7 +62,15 @@ const ProtectedRoute = ({ children }) => {
     )
   }
 
-  return user ? children : <Navigate to="/login" replace />
+  if (!user) {
+    const next = `${location.pathname}${location.search || ''}`
+    const safeNext = getSafeInternalPath(next)
+    const loginSearch =
+      safeNext && safeNext !== '/login' ? `?next=${encodeURIComponent(next)}` : ''
+    return <Navigate to={`/login${loginSearch}`} replace />
+  }
+
+  return children
 }
 
 // Show landing when not logged in, dashboard when logged in

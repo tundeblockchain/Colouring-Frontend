@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import {
   Box,
   Typography,
@@ -43,6 +43,7 @@ import {
   readPendingCreatePoll,
   anyPagePendingPoll,
 } from '../utils/createPendingPollStorage'
+import { consumePendingLandingCreate } from '../utils/pendingLandingCreate'
 import { downloadImagesAsPdf, printColoringPages } from '../utils/downloadImage'
 
 const BOOK_GENERATION_MAX_PAGES = 50
@@ -78,7 +79,6 @@ function getErrorMessage(msg) {
 export const CreateColoringPage = () => {
   const { type } = useParams()
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
   const { user } = useAuth()
   const { data: userProfile } = useUser(user?.uid)
   const generateMutation = useGenerateColoringPage()
@@ -183,6 +183,18 @@ export const CreateColoringPage = () => {
     const cap = getImageCountMaxForTab(activeTab)
     setNumImages((prev) => Math.min(prev, cap))
   }, [activeTab])
+
+  useEffect(() => {
+    if (type !== 'text') return
+    const pending = consumePendingLandingCreate()
+    if (!pending) return
+    setPrompt(pending.prompt)
+    if (pending.quality === 'fast' || pending.quality === 'standard') {
+      setQuality(pending.quality)
+    }
+    const cap = getImageCountMaxForTab('text')
+    setNumImages((prev) => Math.min(cap, Math.max(1, pending.numImages || prev)))
+  }, [type])
 
   const handleTabChange = (event, newValue) => {
     if (photoPreviewUrl) {
